@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "733630985134",
+    "firebase_url": "https://ecg490-7613b.firebaseio.com",
+    "project_id": "ecg490-7613b",
+    "storage_bucket": "ecg490-7613b.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:733630985134:android:d3aa130d691939561e0e3f",
+        "android_client_info": {
+          "package_name": "com.example.ecg490"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "733630985134-l5in3il07rqgdok2ojvgr2pfrnokhi89.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDasVpDXEVdHZljQmZ0iVNRahuNn1ty_fc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "733630985134-l5in3il07rqgdok2ojvgr2pfrnokhi89.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
