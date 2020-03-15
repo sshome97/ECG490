@@ -197,7 +197,7 @@ public class MainActivity extends AppCompatActivity {
                 //When the DeviceListActivity return, with the selected device address
                 if (resultCode == Activity.RESULT_OK && data != null) {
                     String deviceAddress = data.getStringExtra(BluetoothDevice.EXTRA_DEVICE);
-                    mDevice = BluetoothAdapter.getDefaultAdapter().getRemoteDevice(deviceAddress);
+                    mDevice = BluetoothAdapter.getDefaultAdapter().getRemoteDevice(deviceAddress); //address
                     Log.d(TAG, "... onActivityResultdevice.address==" + mDevice + "mserviceValue" + mService);
                     mService.connectToBleDevice(mDevice);
                 }
@@ -407,7 +407,7 @@ public class MainActivity extends AppCompatActivity {
     public void stopCommand(){
         byte[] configuration = new byte[1];
         configuration[0] = 1;
-        //mService.writeRXCharacteristic(configuration);
+        mService.writeRXCharacteristic(configuration);
     }
     public void setCommand(){
         stopCommand();
