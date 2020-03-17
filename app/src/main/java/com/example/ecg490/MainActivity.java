@@ -9,6 +9,8 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothGattCharacteristic;
+import android.bluetooth.BluetoothGattService;
 import android.bluetooth.le.ScanSettings;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
@@ -30,9 +32,14 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.firebase.auth.FirebaseAuth;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -45,6 +52,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int UART_PROFILE_DISCONNECTED = 21;
     private static final int STATE_OFF = 10;
     private ScanSettings settings;
+    private TextView mDataField;
 
     private int mState = UART_PROFILE_DISCONNECTED;
     private UartService mService = null;
@@ -53,7 +61,12 @@ public class MainActivity extends AppCompatActivity {
     private ListView BLEListView;
     private ArrayAdapter<String> listAdapter;
     private Button connectDisconnectButton;
-    private Button logoutButton;
+    private Button loadButton;
+    private final String LIST_NAME = "NAME";
+    private final String LIST_UUID = "UUID";
+    private BluetoothGattCharacteristic characteristicTX;
+    private BluetoothGattCharacteristic mNotifyCharacteristic;
+
 
     @Override
     public void onBackPressed() {
@@ -85,6 +98,8 @@ public class MainActivity extends AppCompatActivity {
         BLEListView.setAdapter(listAdapter);
         BLEListView.setDivider(null);
         connectDisconnectButton =(Button) findViewById(R.id.connectButton);
+        loadButton =(Button) findViewById(R.id.loadButton);
+        mDataField = (TextView) findViewById(R.id.data_value);
         service_init();
         CheckBlueToothState(); // Make sure bluetooth is enabled, if not, prompt the user to enable it
         if (Build.VERSION.SDK_INT>=Build.VERSION_CODES.M){
@@ -116,10 +131,12 @@ public class MainActivity extends AppCompatActivity {
                         //Connect button pressed, open DeviceListActivity class, with popup windows that scan for devices
                         Intent newIntent = new Intent(MainActivity.this, DeviceListActivity.class);
                         startActivityForResult(newIntent, REQUEST_SELECT_DEVICE);
-                    } else {
+                    } else if (mDevice!=null){
                         //Disconnect button pressed
-                        if (mDevice!=null)
-                            mService.disconnect();
+                        //if (mDevice!=null)
+                        Log.d(TAG, "now disconnect");
+                        mService.disconnect();
+
 
                     }
             }
@@ -271,9 +288,11 @@ public class MainActivity extends AppCompatActivity {
     };
 
     public final BroadcastReceiver UARTStatusChangeReceiver = new BroadcastReceiver() {
-
+        @Override
         public void onReceive(Context context, final Intent intent) {
             String action = intent.getAction();
+
+            Log.d(TAG, "before if");
 
             //*********************//
             if (action.equals(UartService.ACTION_GATT_CONNECTED)) {
@@ -291,46 +310,51 @@ public class MainActivity extends AppCompatActivity {
                 Log.d(TAG, "UART_DISCONNECT_MSG");
                 connectDisconnectButton.setText("Connect");
                 mState = UART_PROFILE_DISCONNECTED;
+                mDataField.setText("");
                 //stopCommand();
+                //mService.disconnect();
                 mService.close();
                 // }
                 //});
             }
-           /* if (action.equals(UartService.ACTION_GATT_SERVICES_DISCOVERED)) {
+            if (action.equals(UartService.ACTION_GATT_SERVICES_DISCOVERED)) {
                 //startCommand();
-                setCommand();
+               // setCommand();
+                Log.d(TAG, "call displaygatt");
+                displayGattServices(mService.getSupportedGattServices());
                 //mService.enableTXNotification();
             }
-            *//*********************//*
+            //*//*********************//*
             if (action.equals(UartService.ACTION_DATA_AVAILABLE)) {
-                final byte[] txValue = intent.getByteArrayExtra(UartService.EXTRA_DATA);
-                 *//*runOnUiThread(new Runnable() {
-                     public void run() {*//*
-                try {
-
-                    for (int i = 0; i < 5; i++) {
-                        temp_sample = fromByteArray(txValue, i);
-                        data[position] = registerValueToVolt(temp_sample);
-                        position++;
-                    }
-
-                    if(position % 250 == 0) {
-                        //set RealTimeUpdates Arguments
-                        RealtimeUpdates realTimeData = new RealtimeUpdates();
-
-                        //Begin the transaction
-                        FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
-                        ft.replace(R.id.frameLayout, realTimeData);
-                        ft.commit();
-
-                        position = 0;
-                    }
-                } catch (Exception e) {
-                    Log.e(TAG, e.toString());
-                }
-                // }
-                //});
-            }*/
+                displayData(intent.getStringExtra(UartService.EXTRA_DATA));
+//                final byte[] txValue = intent.getByteArrayExtra(UartService.EXTRA_DATA);
+//                 *//*runOnUiThread(new Runnable() {
+//                     public void run() {*//*
+//                try {
+//
+//                    for (int i = 0; i < 5; i++) {
+//                        temp_sample = fromByteArray(txValue, i);
+//                        data[position] = registerValueToVolt(temp_sample);
+//                        position++;
+//                    }
+//
+//                    if(position % 250 == 0) {
+//                        //set RealTimeUpdates Arguments
+//                        RealtimeUpdates realTimeData = new RealtimeUpdates();
+//
+//                        //Begin the transaction
+//                        FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
+//                        ft.replace(R.id.frameLayout, realTimeData);
+//                        ft.commit();
+//
+//                        position = 0;
+//                    }
+//                } catch (Exception e) {
+//                    Log.e(TAG, e.toString());
+//                }
+//                // }
+//                //});
+            }
 
             //*********************//
             if (action.equals(UartService.DEVICE_DOES_NOT_SUPPORT_UART)){
@@ -340,6 +364,86 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     };
+
+    private void displayData(String data) {
+        if (data != null) {
+            mDataField.setText(data);
+        }
+    }
+
+    private void displayGattServices(List<BluetoothGattService> gattServices) {
+
+        if (gattServices == null) return;
+        String uuid = null;
+        String unknownServiceString = getResources().getString(R.string.unknown_service);
+        ArrayList<HashMap<String, String>> gattServiceData = new ArrayList<HashMap<String, String>>();
+
+
+        // Loops through available GATT Services.
+        for (BluetoothGattService gattService : gattServices) {
+            HashMap<String, String> currentServiceData = new HashMap<String, String>();
+            uuid = gattService.getUuid().toString();
+            currentServiceData.put(
+                    LIST_NAME, SampleGattAttributes.lookup(uuid, unknownServiceString));
+            Log.d(TAG, "right above");
+            // If the service exists for HM 10 Serial, say so.
+            if (SampleGattAttributes.lookup(uuid, unknownServiceString) == "ECGW2") {
+                //isSerial.setText("Yes, serial :-)");
+                Log.d(TAG, "ECG discovered");
+            } else {
+                //isSerial.setText("No, serial :-(");
+                Log.d(TAG, "Nathan bruv");
+            }
+            currentServiceData.put(LIST_UUID, uuid);
+            gattServiceData.add(currentServiceData);
+
+            // get characteristic when UUID matches RX/TX UUID
+            characteristicTX = gattService.getCharacteristic(UartService.UUID_TX_CHAR_UUID);
+            if(characteristicTX != null){
+                final int charaProp = characteristicTX.getProperties();
+                if ((charaProp | BluetoothGattCharacteristic.PROPERTY_READ) > 0) {
+                    // If there is an active notification on a characteristic, clear
+                    // it first so it doesn't update the data field on the user interface.
+                    if (mNotifyCharacteristic != null) {
+                        mService.setCharacteristicNotification(
+                                mNotifyCharacteristic, false);
+                        mNotifyCharacteristic = null;
+                    }
+                    mService.readCharacteristic(characteristicTX);
+                }
+                if ((charaProp | BluetoothGattCharacteristic.PROPERTY_NOTIFY) > 0) {
+                    mNotifyCharacteristic = characteristicTX;
+                    mService.setCharacteristicNotification(
+                            characteristicTX, true);
+                }
+            }
+
+//            // SEcond characteristic
+//            // get characteristic when UUID matches RX/TX UUID
+//            characteristicTX2 = gattService.getCharacteristic(UartService.UUID_TX_CHAR_UUID);
+//            if(characteristicTX2 != null){
+//                final int charaProp = characteristicTX2.getProperties();
+//                if ((charaProp | BluetoothGattCharacteristic.PROPERTY_READ) > 0) {
+//                    // If there is an active notification on a characteristic, clear
+//                    // it first so it doesn't update the data field on the user interface.
+//                    if (mNotifyCharacteristic != null) {
+//                        mService.setCharacteristicNotification(
+//                                mNotifyCharacteristic, false);
+//                        mNotifyCharacteristic = null;
+//                    }
+//                    mService.readCharacteristic(characteristicTX);
+//                }
+//                if ((charaProp | BluetoothGattCharacteristic.PROPERTY_NOTIFY) > 0) {
+//                    mNotifyCharacteristic = characteristicTX;
+//                    mService.setCharacteristicNotification(
+//                            characteristicTX, true);
+//                }
+//            }
+
+        }
+    }
+
+    //called in on create
     private void service_init() {
         Intent bindIntent = new Intent(this, UartService.class);
         bindService(bindIntent, mServiceConnection, Context.BIND_AUTO_CREATE);
@@ -349,8 +453,8 @@ public class MainActivity extends AppCompatActivity {
         final IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(UartService.ACTION_GATT_CONNECTED);
         intentFilter.addAction(UartService.ACTION_GATT_DISCONNECTED);
-        //intentFilter.addAction(UartService.ACTION_GATT_SERVICES_DISCOVERED);
-        //intentFilter.addAction(UartService.ACTION_DATA_AVAILABLE);
+        intentFilter.addAction(UartService.ACTION_GATT_SERVICES_DISCOVERED);
+        intentFilter.addAction(UartService.ACTION_DATA_AVAILABLE);
         intentFilter.addAction(UartService.DEVICE_DOES_NOT_SUPPORT_UART);
         return intentFilter;
     }
@@ -390,38 +494,38 @@ public class MainActivity extends AppCompatActivity {
 //        else
 //            return (bytes[0 + position*3]) << 16 | (bytes[1 + position*3] & 0xFF) << 8 | (bytes[2 + position*3] & 0xFF);
 //    }
-    float registerValueToVolt(int value){
-        return (float) (((value/(Math.pow(2,23)-1))) * 2.5f);
-    }
-    private void broadcastUpdate(final String action) {
-        final Intent intent = new Intent(action);
-        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
-    }
-    //Configuration commands
-    public void startCommand(){
-        byte[] configuration = new byte[1];
-        configuration[0] = 0;
-        //mService.writeRXCharacteristic(configuration);
-    }
-
-    public void stopCommand(){
-        byte[] configuration = new byte[1];
-        configuration[0] = 1;
-        mService.writeRXCharacteristic(configuration);
-    }
-    public void setCommand(){
-        stopCommand();
-        android.os.SystemClock.sleep(50);
-        byte[] configuration = new byte[3];
-        configuration[0] = 2;
-        for(int i=0; i <=22; i++){
-            //configuration[1] = (byte) EcgConfig[i][0];
-            //configuration[2] = (byte) EcgConfig[i][1];
-            //mService.writeRXCharacteristic(configuration);
-            android.os.SystemClock.sleep(50);
-            android.os.SystemClock.sleep(50);
-            android.os.SystemClock.sleep(50);
-        }
-        startCommand();
-    }
+//    float registerValueToVolt(int value){
+//        return (float) (((value/(Math.pow(2,23)-1))) * 2.5f);
+//    }
+//    private void broadcastUpdate(final String action) {
+//        final Intent intent = new Intent(action);
+//        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
+//    }
+//    //Configuration commands
+//    public void startCommand(){
+//        byte[] configuration = new byte[1];
+//        configuration[0] = 0;
+//        //mService.writeRXCharacteristic(configuration);
+//    }
+//
+//    public void stopCommand(){
+//        byte[] configuration = new byte[1];
+//        configuration[0] = 1;
+//        mService.writeRXCharacteristic(configuration);
+//    }
+//    public void setCommand(){
+//        stopCommand();
+//        android.os.SystemClock.sleep(50);
+//        byte[] configuration = new byte[3];
+//        configuration[0] = 2;
+//        for(int i=0; i <=22; i++){
+//            //configuration[1] = (byte) EcgConfig[i][0];
+//            //configuration[2] = (byte) EcgConfig[i][1];
+//            //mService.writeRXCharacteristic(configuration);
+//            android.os.SystemClock.sleep(50);
+//            android.os.SystemClock.sleep(50);
+//            android.os.SystemClock.sleep(50);
+//        }
+//        startCommand();
+//    }
 }

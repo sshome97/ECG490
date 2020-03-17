@@ -65,23 +65,23 @@ public class UartService extends Service {
             Log.e(TAG, "Unable to obtain a BluetoothAdapter.");
             return false;
         }
-
-        //btScanner = btAdapter.getBluetoothLeScanner();
+//sames remember
+        btScanner = btAdapter.getBluetoothLeScanner();
 
         return true;
 
     }
+//hope yyou remember
+    private ScanCallback leScanCallback = new ScanCallback() {
 
-//    private ScanCallback leScanCallback = new ScanCallback() {
-//
-//        @Override
-//        public void onScanResult(int callbackType, final ScanResult result) {
-//            //super.onScanResult(callbackType, result);
-//            if (mBluetoothDeviceAddress.equals(result.getDevice().getAddress())) {
-//                connectToBleDevice(result.getDevice());
-//            }
-//        }
-//    };
+        @Override
+        public void onScanResult(int callbackType, final ScanResult result) {
+            //super.onScanResult(callbackType, result);
+            if (mBluetoothDeviceAddress.equals(result.getDevice().getAddress())) {
+                connectToBleDevice(result.getDevice());
+            }
+        }
+    };
 
     public boolean connectToBleDevice(BluetoothDevice device) {
         if (btAdapter == null || device.getAddress() == null) {
@@ -95,30 +95,28 @@ public class UartService extends Service {
                 mConnectionState = STATE_CONNECTING;
                 return true;
             } else {
+                //if (!mGatt.connect()) {
+                //mConnectionState = STATE_DISCONNECTED;
                 return false;
             }
         }
-//        if (mGatt == null) {
-//            Log.d(TAG, "Trying to create a new connection.");
-//            btScanner.stopScan(leScanCallback);
-//            mGatt = device.connectGatt(this, false, gattCallback);
-//            int state = btManager.getConnectionState(mGatt.getDevice(), BluetoothProfile.GATT);
-//            mBluetoothDeviceAddress = device.getAddress();
-//            mConnectionState = STATE_CONNECTING;
-//        }
-
-
-
-
+        if (mGatt == null) {
+            Log.d(TAG, "Trying to create a new connection.");
+            btScanner.stopScan(leScanCallback);
+            mGatt = device.connectGatt(this, false, gattCallback);
+            int state = btManager.getConnectionState(mGatt.getDevice(), BluetoothProfile.GATT);
+            mBluetoothDeviceAddress = device.getAddress();
+            mConnectionState = STATE_CONNECTING;
+      }
 
         if (device == null) {
             Log.w(TAG, "Device not found.  Unable to connect.");
             return false;
         }
 
-        mGatt = device.connectGatt(this, false, gattCallback);
-        mBluetoothDeviceAddress = device.getAddress();
-        mConnectionState = STATE_CONNECTING;
+//        mGatt = device.connectGatt(this, false, gattCallback);
+//        mBluetoothDeviceAddress = device.getAddress();
+//        mConnectionState = STATE_CONNECTING;
 
         Toast.makeText(UartService.this,"Successfully Connected",Toast.LENGTH_SHORT).show();
         return true;
@@ -131,6 +129,7 @@ public class UartService extends Service {
             return;
         }
         mGatt.disconnect();
+
     }
     public void close() {
         if (mGatt == null) {
@@ -141,14 +140,24 @@ public class UartService extends Service {
         mGatt.close();
         mGatt = null;
     }
+
+    public void readCharacteristic(BluetoothGattCharacteristic characteristic) {
+        if (btAdapter == null || mGatt == null) {
+            Log.w(TAG, "BluetoothAdapter not initialized");
+            return;
+        }
+        mGatt.readCharacteristic(characteristic);
+    }
+
     public BluetoothGattCallback gattCallback = new BluetoothGattCallback() {
         @Override
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
-           // super.onConnectionStateChange(gatt, status, newState);
-           // if(status == 0)
-           //     gatt.connect();
-           // mGatt.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH);
+            super.onConnectionStateChange(gatt, status, newState);
+            if(status == 0)
+                gatt.connect();
+            mGatt.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH);
             String intentAction;
+
             if (newState == BluetoothProfile.STATE_CONNECTED) {
                 intentAction = ACTION_GATT_CONNECTED;
                 mConnectionState = STATE_CONNECTED;
@@ -156,6 +165,8 @@ public class UartService extends Service {
                 Log.i(TAG, "Connected to GATT server.");
                 mGatt.discoverServices();
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+                //mGatt.close();
+                //mGatt.disconnect();
                 intentAction = ACTION_GATT_DISCONNECTED;
                 mConnectionState = STATE_DISCONNECTED;
                 Log.i(TAG, "Disconnected from GATT server.");
@@ -176,13 +187,13 @@ public class UartService extends Service {
                 Log.w(TAG, "onServicesDiscovered received: " + status);
             }
         }
-        public void readCharacteristic(BluetoothGattCharacteristic characteristic) {
-            if (btAdapter == null || mGatt == null) {
-                Log.w(TAG, "BluetoothAdapter not initialized");
-                return;
-            }
-            mGatt.readCharacteristic(characteristic);
-        }
+//        public void readCharacteristic(BluetoothGattCharacteristic characteristic) {
+//            if (btAdapter == null || mGatt == null) {
+//                Log.w(TAG, "BluetoothAdapter not initialized");
+//                return;
+//            }
+//            mGatt.readCharacteristic(characteristic);
+//        }
 
         @Override
         public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
@@ -197,9 +208,10 @@ public class UartService extends Service {
         }
    };
         private void broadcastUpdate(final String action) {
+            Log.d(TAG, "broadcast");
             final Intent intent = new Intent(action);
-            //LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
-            sendBroadcast(intent);
+            LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
+            //sendBroadcast(intent);
         }
         //ACTUALLY RECIEVING DATA
         private void broadcastUpdate(final String action, final BluetoothGattCharacteristic characteristic) {
@@ -217,8 +229,8 @@ public class UartService extends Service {
                     Log.d(TAG, "Heart rate format UINT8.");
                 }
 
-                final int ECGData = characteristic.getIntValue(format, 1); //receive data in byte
-                Log.d(TAG, String.format("Received ECG data rate: %d", ECGData));
+                final String ECGData = characteristic.getStringValue(0); //receive data in byte
+                Log.d(TAG, String.format("Received ECG data rate: %s", ECGData));
                 intent.putExtra(EXTRA_DATA, String.valueOf(ECGData));
 
             } else {
@@ -233,7 +245,8 @@ public class UartService extends Service {
                 }
 
             }
-            sendBroadcast(intent);
+            //sendBroadcast(intent);
+            LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
         }
         public class LocalBinder extends Binder {
             UartService getService() {

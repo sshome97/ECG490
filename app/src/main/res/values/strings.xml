@@ -46,5 +46,6 @@
     <string name="ble_not_supported">Bluetooth Low Energy not supported</string>
     <string name="scan">Scan</string>
     <string name="cancel">Cancel</string>
+    <string name="unknown_service">Unknown service</string>
 
 </resources>
