@@ -78,6 +78,8 @@ public class MainActivity extends AppCompatActivity {
 
                     public void onClick(DialogInterface arg0, int arg1) {
                         MainActivity.super.onBackPressed();
+                        mService.disconnect();
+
                     }
                 }).create().show();
     }
@@ -152,6 +154,7 @@ public class MainActivity extends AppCompatActivity {
         int id = item.getItemId();
         switch (id){
             case R.id.Logout:
+                mService.disconnect();
                 FirebaseAuth.getInstance().signOut();
                 Intent intent = new Intent(MainActivity.this, SignInActivity.class);
                 startActivity(intent);
@@ -184,6 +187,8 @@ public class MainActivity extends AppCompatActivity {
     protected void onStop() {
         Log.d(TAG, "onStop");
         super.onStop();
+        mService.disconnect();
+
     }
 
     @Override

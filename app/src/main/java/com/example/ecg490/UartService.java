@@ -34,6 +34,8 @@ public class UartService extends Service {
     private BluetoothGatt mGatt;
     private int mConnectionState = STATE_DISCONNECTED;
 
+    private DeviceListActivity mScan;
+
     private static final int STATE_DISCONNECTED = 0;
     private static final int STATE_CONNECTING = 1;
     private static final int STATE_CONNECTED = 2;
@@ -101,19 +103,18 @@ public class UartService extends Service {
             }
         }
         if (mGatt == null) {
-            Log.d(TAG, "Trying to create a new connection.");
-            btScanner.stopScan(leScanCallback);
-            mGatt = device.connectGatt(this, false, gattCallback);
-            int state = btManager.getConnectionState(mGatt.getDevice(), BluetoothProfile.GATT);
             mBluetoothDeviceAddress = device.getAddress();
-            mConnectionState = STATE_CONNECTING;
-      }
-
-        if (device == null) {
-            Log.w(TAG, "Device not found.  Unable to connect.");
-            return false;
+            if (device == null) {
+                Log.w(TAG, "Device not found.  Unable to connect.");
+                return false;
+            } else {
+                Log.d(TAG, "Trying to create a new connection.");
+                btScanner.stopScan(leScanCallback);
+                mGatt = device.connectGatt(this, false, gattCallback);
+                int state = btManager.getConnectionState(mGatt.getDevice(), BluetoothProfile.GATT);
+                mConnectionState = STATE_CONNECTING;
+            }
         }
-
 //        mGatt = device.connectGatt(this, false, gattCallback);
 //        mBluetoothDeviceAddress = device.getAddress();
 //        mConnectionState = STATE_CONNECTING;
@@ -128,6 +129,7 @@ public class UartService extends Service {
             Log.w(TAG, "BluetoothAdapter not initialized");
             return;
         }
+
         mGatt.disconnect();
 
     }
