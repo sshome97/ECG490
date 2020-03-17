@@ -387,7 +387,7 @@ public class MainActivity extends AppCompatActivity {
                     LIST_NAME, SampleGattAttributes.lookup(uuid, unknownServiceString));
             Log.d(TAG, "right above");
             // If the service exists for HM 10 Serial, say so.
-            if (SampleGattAttributes.lookup(uuid, unknownServiceString) == "ECGW2") {
+            if (SampleGattAttributes.lookup(uuid, unknownServiceString) == "W2ECG") {
                 //isSerial.setText("Yes, serial :-)");
                 Log.d(TAG, "ECG discovered");
             } else {

@@ -34,10 +34,10 @@ public class SampleGattAttributes {
 
     static {
         // Sample Services.
-        attributes.put("6e400001-b5a3-f393-e0a9-e50e24dcca9e", "ECGW2");
+        attributes.put("6e400001-b5a3-f393-e0a9-e50e24dcca9e", "W2ECG");
         attributes.put("0000180a-0000-1000-8000-00805f9b34fb", "Device Information Service");
         // Sample Characteristics.
-        attributes.put(TX_CHAR_UUID, "ECGW2 Data");
+        attributes.put(TX_CHAR_UUID, "W2ECG Data");
         //attributes.put("00002a29-0000-1000-8000-00805f9b34fb", "Manufacturer Name String");
     }
 
