@@ -233,21 +233,23 @@ public class UartService extends Service {
 
                 final String ECGData = characteristic.getStringValue(0); //receive data in byte
                 Log.d(TAG, String.format("Received ECG data rate: %s", ECGData));
-                if (ECGData != "" || ECGData.isEmpty()) {
+
+
                     intent.putExtra(EXTRA_DATA, String.valueOf(ECGData).trim());
+                    LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
 
-                } else {
-                    // For all other profiles, writes the data formatted in HEX.
-                    final byte[] data = characteristic.getValue();
-                    if (data != null && data.length > 0) {
-                        final StringBuilder stringBuilder = new StringBuilder(data.length);
-                        for (byte byteChar : data)
-                            stringBuilder.append(String.format("%02X ", byteChar));
-                        intent.putExtra(EXTRA_DATA, new String(data) + "\n" + stringBuilder.toString());
-
-                    }
-
-                }
+//                 else {
+//                    // For all other profiles, writes the data formatted in HEX.
+//                    final byte[] data = characteristic.getValue();
+//                    if (data != null && data.length > 0) {
+//                        final StringBuilder stringBuilder = new StringBuilder(data.length);
+//                        for (byte byteChar : data)
+//                            stringBuilder.append(String.format("%02X ", byteChar));
+//                        intent.putExtra(EXTRA_DATA, new String(data) + "\n" + stringBuilder.toString());
+//
+//                    }
+//
+//                }
                 //sendBroadcast(intent);
                 LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
             }

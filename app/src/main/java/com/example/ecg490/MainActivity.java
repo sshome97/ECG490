@@ -50,6 +50,7 @@ import java.util.List;
 //changed from AppCombatActivity to
 public class MainActivity extends FragmentActivity {
 
+    private LineGraphSeries<DataPoint> series;
 
     private static final int REQUEST_SELECT_DEVICE = 1;
     private static final int REQUEST_ENABLE_BT = 2;
@@ -107,13 +108,13 @@ public class MainActivity extends FragmentActivity {
             return;
         }
 
-
         BLEListView = (ListView) findViewById(R.id.BLEDevices);
         listAdapter = new ArrayAdapter<String>(this, R.layout.message_detail);
         BLEListView.setAdapter(listAdapter);
         BLEListView.setDivider(null);
         connectDisconnectButton =(Button) findViewById(R.id.connectButton);
         loadButton =(Button) findViewById(R.id.loadButton);
+        loadButton.setVisibility(View.INVISIBLE);
         mDataField = (TextView) findViewById(R.id.data_value);
         service_init();
         CheckBlueToothState(); // Make sure bluetooth is enabled, if not, prompt the user to enable it
@@ -156,6 +157,7 @@ public class MainActivity extends FragmentActivity {
                     }
             }
         }});
+
     }
     @Override
     public boolean onCreateOptionsMenu(Menu menu){
@@ -318,6 +320,7 @@ public class MainActivity extends FragmentActivity {
                     public void run() {*/
                 Log.d(TAG, "UART_CONNECT_MSG");
                 connectDisconnectButton.setText("Disconnect");
+                loadButton.setVisibility(View.VISIBLE);
                 mState = UART_PROFILE_CONNECTED;
                 //   }
                 // });
@@ -329,6 +332,7 @@ public class MainActivity extends FragmentActivity {
                 connectDisconnectButton.setText("Connect");
                 mState = UART_PROFILE_DISCONNECTED;
                 mDataField.setText("");
+                loadButton.setVisibility(View.INVISIBLE);
                 //stopCommand();
                 //mService.disconnect();
                 mService.close();
@@ -377,15 +381,17 @@ public class MainActivity extends FragmentActivity {
             String dataString = intent.getStringExtra(UartService.EXTRA_DATA);
             displayData(dataString);
 
-            Integer dataInt = Integer.parseInt(dataString);
+            Integer dataInt = !dataString.equals("")?Integer.parseInt(dataString) : 0;
             try{
                 data[position] = dataInt;
                 position++;
                 Log.d(TAG,"tryna frag");
-                if (position  == 10){
+                Log.d(TAG, "" + position);
+                if (position  % 250 == 0){
                     //fragment
+
                     RealTimeUpdate realTimeData = new RealTimeUpdate();
-                Log.d(TAG,"frag success");
+                    Log.d(TAG,"frag success");
                     FragmentTransaction showFrag = getSupportFragmentManager().beginTransaction();
                     showFrag.replace(R.id.frameLayout, realTimeData);
                     showFrag.commit();
