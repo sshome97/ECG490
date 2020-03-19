@@ -2,8 +2,6 @@ package com.example.ecg490;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.fragment.app.FragmentActivity;
-import androidx.fragment.app.FragmentTransaction;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import android.Manifest;
@@ -22,7 +20,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
-import android.nfc.Tag;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -39,17 +36,12 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.firebase.auth.FirebaseAuth;
-import com.jjoe64.graphview.GraphView;
-import com.jjoe64.graphview.series.DataPoint;
-import com.jjoe64.graphview.series.LineGraphSeries;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-//changed from AppCombatActivity to
-public class MainActivity extends FragmentActivity {
-
+public class MainActivity extends AppCompatActivity {
 
     private static final int REQUEST_SELECT_DEVICE = 1;
     private static final int REQUEST_ENABLE_BT = 2;
@@ -74,10 +66,6 @@ public class MainActivity extends FragmentActivity {
     private final String LIST_UUID = "UUID";
     private BluetoothGattCharacteristic characteristicTX;
     private BluetoothGattCharacteristic mNotifyCharacteristic;
-
-    float data[] = new float[250];
-    int temp_sample;
-    int position = 0;
 
 
     @Override
@@ -106,7 +94,6 @@ public class MainActivity extends FragmentActivity {
             finish();
             return;
         }
-
 
         BLEListView = (ListView) findViewById(R.id.BLEDevices);
         listAdapter = new ArrayAdapter<String>(this, R.layout.message_detail);
@@ -344,7 +331,7 @@ public class MainActivity extends FragmentActivity {
             }
             //*//*********************//*
             if (action.equals(UartService.ACTION_DATA_AVAILABLE)) {
-                //displayData(intent.getStringExtra(UartService.EXTRA_DATA));
+                displayData(intent.getStringExtra(UartService.EXTRA_DATA));
 //                final byte[] txValue = intent.getByteArrayExtra(UartService.EXTRA_DATA);
 //                 *//*runOnUiThread(new Runnable() {
 //                     public void run() {*//*
@@ -372,30 +359,8 @@ public class MainActivity extends FragmentActivity {
 //                }
 //                // }
 //                //});
-                //
+            }
 
-            String dataString = intent.getStringExtra(UartService.EXTRA_DATA);
-            displayData(dataString);
-
-            Integer dataInt = Integer.parseInt(dataString);
-            try{
-                data[position] = dataInt;
-                position++;
-                Log.d(TAG,"tryna frag");
-                if (position  == 10){
-                    //fragment
-                    RealTimeUpdate realTimeData = new RealTimeUpdate();
-                Log.d(TAG,"frag success");
-                    FragmentTransaction showFrag = getSupportFragmentManager().beginTransaction();
-                    showFrag.replace(R.id.frameLayout, realTimeData);
-                    showFrag.commit();
-                    position = 0;
-                }
-            }
-            catch (Exception e){
-                Log.e(TAG, e.toString());
-            }
-            }
             //*********************//
             if (action.equals(UartService.DEVICE_DOES_NOT_SUPPORT_UART)){
                 showMessage("Device doesn't support UART. Disconnecting");
@@ -434,11 +399,13 @@ public class MainActivity extends FragmentActivity {
                 //isSerial.setText("No, serial :-(");
                 Log.d(TAG, "Nathan bruv");
             }
+
             currentServiceData.put(LIST_UUID, uuid);
             gattServiceData.add(currentServiceData);
 
             // get characteristic when UUID matches RX/TX UUID
             characteristicTX = gattService.getCharacteristic(UartService.UUID_TX_CHAR_UUID);
+            //gattService.toString()
             if(characteristicTX != null){
                 final int charaProp = characteristicTX.getProperties();
                 if ((charaProp | BluetoothGattCharacteristic.PROPERTY_READ) > 0) {
@@ -458,7 +425,7 @@ public class MainActivity extends FragmentActivity {
                 }
             }
 
-//            // SEcond characteristic
+//            // Second characteristic
 //            // get characteristic when UUID matches RX/TX UUID
 //            characteristicTX2 = gattService.getCharacteristic(UartService.UUID_TX_CHAR_UUID);
 //            if(characteristicTX2 != null){
