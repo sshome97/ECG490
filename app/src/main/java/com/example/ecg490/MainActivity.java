@@ -2,6 +2,8 @@ package com.example.ecg490;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.FragmentActivity;
+import androidx.fragment.app.FragmentTransaction;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import android.Manifest;
@@ -20,6 +22,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
+import android.nfc.Tag;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -36,12 +39,17 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.firebase.auth.FirebaseAuth;
+import com.jjoe64.graphview.GraphView;
+import com.jjoe64.graphview.series.DataPoint;
+import com.jjoe64.graphview.series.LineGraphSeries;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity {
+//changed from AppCombatActivity to
+public class MainActivity extends FragmentActivity {
+
 
     private static final int REQUEST_SELECT_DEVICE = 1;
     private static final int REQUEST_ENABLE_BT = 2;
@@ -66,6 +74,10 @@ public class MainActivity extends AppCompatActivity {
     private final String LIST_UUID = "UUID";
     private BluetoothGattCharacteristic characteristicTX;
     private BluetoothGattCharacteristic mNotifyCharacteristic;
+
+    float data[] = new float[250];
+    int temp_sample;
+    int position = 0;
 
 
     @Override
@@ -94,6 +106,7 @@ public class MainActivity extends AppCompatActivity {
             finish();
             return;
         }
+
 
         BLEListView = (ListView) findViewById(R.id.BLEDevices);
         listAdapter = new ArrayAdapter<String>(this, R.layout.message_detail);
@@ -331,7 +344,7 @@ public class MainActivity extends AppCompatActivity {
             }
             //*//*********************//*
             if (action.equals(UartService.ACTION_DATA_AVAILABLE)) {
-                displayData(intent.getStringExtra(UartService.EXTRA_DATA));
+                //displayData(intent.getStringExtra(UartService.EXTRA_DATA));
 //                final byte[] txValue = intent.getByteArrayExtra(UartService.EXTRA_DATA);
 //                 *//*runOnUiThread(new Runnable() {
 //                     public void run() {*//*
@@ -359,8 +372,30 @@ public class MainActivity extends AppCompatActivity {
 //                }
 //                // }
 //                //});
-            }
+                //
 
+            String dataString = intent.getStringExtra(UartService.EXTRA_DATA);
+            displayData(dataString);
+
+            Integer dataInt = Integer.parseInt(dataString);
+            try{
+                data[position] = dataInt;
+                position++;
+                Log.d(TAG,"tryna frag");
+                if (position  == 10){
+                    //fragment
+                    RealTimeUpdate realTimeData = new RealTimeUpdate();
+                Log.d(TAG,"frag success");
+                    FragmentTransaction showFrag = getSupportFragmentManager().beginTransaction();
+                    showFrag.replace(R.id.frameLayout, realTimeData);
+                    showFrag.commit();
+                    position = 0;
+                }
+            }
+            catch (Exception e){
+                Log.e(TAG, e.toString());
+            }
+            }
             //*********************//
             if (action.equals(UartService.DEVICE_DOES_NOT_SUPPORT_UART)){
                 showMessage("Device doesn't support UART. Disconnecting");
