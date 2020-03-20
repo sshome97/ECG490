@@ -17,7 +17,7 @@
     <!--        app:layout_constraintTop_toTopOf="parent"></FrameLayout>-->
 
 
-    <!-- we add graph view to display -->
+<!--     we add graph view to display -->
 <!--    <com.jjoe64.graphview.GraphView-->
 <!--        android:id="@+id/graph"-->
 <!--        android:layout_width="0dp"-->

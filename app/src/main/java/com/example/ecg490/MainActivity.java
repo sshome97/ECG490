@@ -400,6 +400,7 @@ public class MainActivity extends AppCompatActivity {
 //                // }
 //                //});
                 //
+                
                 String dataString = intent.getStringExtra(UartService.EXTRA_DATA);
                 displayGraph(dataString);
                 displayData(dataString);
