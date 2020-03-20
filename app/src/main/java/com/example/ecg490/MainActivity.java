@@ -22,12 +22,14 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.nfc.Tag;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
+import android.provider.ContactsContract;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -47,10 +49,18 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-//changed from AppCombatActivity to
-public class MainActivity extends FragmentActivity {
+public class MainActivity extends AppCompatActivity {
 
-    private LineGraphSeries<DataPoint> series;
+    private LineGraphSeries<DataPoint> mSeries1;
+    //private Runnable mTimer1;
+    float samples[] = new float[250];
+    static float plotData[] = new float[1000];
+    public static int currentTimeSec = 0;
+    public static int min = 0;
+    public static int max = 1000;
+    public static int flag = 0;
+    float in[] = new float[3];
+    float fb[] = new float[2];
 
     private static final int REQUEST_SELECT_DEVICE = 1;
     private static final int REQUEST_ENABLE_BT = 2;
@@ -63,14 +73,17 @@ public class MainActivity extends FragmentActivity {
     private ScanSettings settings;
     private TextView mDataField;
 
+    private int k;
+    private Button disconnectButton;
+
     private int mState = UART_PROFILE_DISCONNECTED;
     private UartService mService = null;
     private BluetoothDevice mDevice = null;
     private BluetoothAdapter btAdapter = null;
     private ListView BLEListView;
     private ArrayAdapter<String> listAdapter;
-    private Button connectDisconnectButton;
-    private Button loadButton;
+    private Button connectButton;
+    private GraphView graph;
     private final String LIST_NAME = "NAME";
     private final String LIST_UUID = "UUID";
     private BluetoothGattCharacteristic characteristicTX;
@@ -83,18 +96,24 @@ public class MainActivity extends FragmentActivity {
 
     @Override
     public void onBackPressed() {
-        new AlertDialog.Builder(this)
-                .setTitle("Really Exit?")
-                .setMessage("Are you sure you want to exit?")
-                .setNegativeButton(android.R.string.no, null)
-                .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+        if (k ==1) {
+            new AlertDialog.Builder(this)
+                    .setTitle("Really Exit?")
+                    .setMessage("Are you sure you want to exit?")
+                    .setNegativeButton(android.R.string.no, null)
+                    .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
 
-                    public void onClick(DialogInterface arg0, int arg1) {
-                        MainActivity.super.onBackPressed();
-                        mService.disconnect();
+                        public void onClick(DialogInterface arg0, int arg1) {
+                            MainActivity.super.onBackPressed();
+                            mService.disconnect();
 
-                    }
-                }).create().show();
+                        }
+                    }).create().show();
+        } else if (k ==2){
+            setContentView(R.layout.activity_main);
+            k = 1;
+            mService.disconnect();
+        }
     }
 
     @Override
@@ -107,18 +126,19 @@ public class MainActivity extends FragmentActivity {
             finish();
             return;
         }
-
+//        GraphView graph = (GraphView) findViewById(R.id.graph);
+//        graph.setVisibility(View.INVISIBLE);
+        k = 1;
         BLEListView = (ListView) findViewById(R.id.BLEDevices);
         listAdapter = new ArrayAdapter<String>(this, R.layout.message_detail);
         BLEListView.setAdapter(listAdapter);
         BLEListView.setDivider(null);
-        connectDisconnectButton =(Button) findViewById(R.id.connectButton);
-        loadButton =(Button) findViewById(R.id.loadButton);
-        loadButton.setVisibility(View.INVISIBLE);
+        connectButton = (Button) findViewById(R.id.connectButton);
+
         mDataField = (TextView) findViewById(R.id.data_value);
         service_init();
         CheckBlueToothState(); // Make sure bluetooth is enabled, if not, prompt the user to enable it
-        if (Build.VERSION.SDK_INT>=Build.VERSION_CODES.M){
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             // Make sure we have access coarse location enabled, if not, prompt the user to enable it
             if (this.checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                 final AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -132,52 +152,51 @@ public class MainActivity extends FragmentActivity {
                     }
                 });
                 builder.show();
-            }}
+            }
+        }
 
-        connectDisconnectButton.setOnClickListener(new View.OnClickListener() {
+        connectButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (!btAdapter.isEnabled()) {
                     Log.i(TAG, "onClick - BT not enabled yet");
                     Intent enableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
                     startActivityForResult(enableIntent, REQUEST_ENABLE_BT);
-                }
-                else {
-                    if (connectDisconnectButton.getText().equals("Connect")){
+                } else {
+                    if (connectButton.getText().equals("Connect")) {
                         //Connect button pressed, open DeviceListActivity class, with popup windows that scan for devices
                         Intent newIntent = new Intent(MainActivity.this, DeviceListActivity.class);
                         startActivityForResult(newIntent, REQUEST_SELECT_DEVICE);
-                    } else if (mDevice!=null){
-                        //Disconnect button pressed
-                        //if (mDevice!=null)
-                        Log.d(TAG, "now disconnect");
-                        mService.disconnect();
-
-
                     }
+                }
             }
-        }});
+        });
 
     }
+
     @Override
-    public boolean onCreateOptionsMenu(Menu menu){
+    public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu, menu);
         return true;
+
     }
+
     @Override
-    public boolean onOptionsItemSelected(MenuItem item){
+    public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
-        switch (id){
+        switch (id) {
             case R.id.Logout:
                 mService.disconnect();
                 FirebaseAuth.getInstance().signOut();
                 Intent intent = new Intent(MainActivity.this, SignInActivity.class);
                 startActivity(intent);
-                Toast.makeText(this,"You have been logged out", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "You have been logged out", Toast.LENGTH_SHORT).show();
                 break;
         }
+
         return true;
     }
+
     @Override
     public void onStart() {
         super.onStart();
@@ -195,7 +214,7 @@ public class MainActivity extends FragmentActivity {
         }
         unbindService(mServiceConnection);
         mService.stopSelf();
-        mService= null;
+        mService = null;
     }
 
     @Override
@@ -225,6 +244,7 @@ public class MainActivity extends FragmentActivity {
         if (btAdapter == null || !btAdapter.isEnabled())
             CheckBlueToothState();
     }
+
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         //added supercall
@@ -255,6 +275,7 @@ public class MainActivity extends FragmentActivity {
                 break;
         }
     }
+
     public void CheckBlueToothState() {
         if (btAdapter == null || !btAdapter.isEnabled()) {
             Intent enableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
@@ -263,6 +284,7 @@ public class MainActivity extends FragmentActivity {
             settings = new ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build();
         }
     }
+
     @Override
     public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
         switch (requestCode) {
@@ -286,6 +308,7 @@ public class MainActivity extends FragmentActivity {
             }
         }
     }
+
     private ServiceConnection mServiceConnection = new ServiceConnection() {
         public void onServiceConnected(ComponentName className, IBinder rawBinder) {
             mService = ((UartService.LocalBinder) rawBinder).getService();
@@ -304,7 +327,8 @@ public class MainActivity extends FragmentActivity {
     private Handler mHandler = new Handler() {
         @Override
         //Handler events that received from UART service
-        public void handleMessage(Message msg) {}
+        public void handleMessage(Message msg) {
+        }
     };
 
     public final BroadcastReceiver UARTStatusChangeReceiver = new BroadcastReceiver() {
@@ -319,8 +343,7 @@ public class MainActivity extends FragmentActivity {
                 /*runOnUiThread(new Runnable() {
                     public void run() {*/
                 Log.d(TAG, "UART_CONNECT_MSG");
-                connectDisconnectButton.setText("Disconnect");
-                loadButton.setVisibility(View.VISIBLE);
+
                 mState = UART_PROFILE_CONNECTED;
                 //   }
                 // });
@@ -329,10 +352,10 @@ public class MainActivity extends FragmentActivity {
                 //runOnUiThread(new Runnable() {
                 //  public void run() {
                 Log.d(TAG, "UART_DISCONNECT_MSG");
-                connectDisconnectButton.setText("Connect");
+                connectButton.setText("Connect");
                 mState = UART_PROFILE_DISCONNECTED;
                 mDataField.setText("");
-                loadButton.setVisibility(View.INVISIBLE);
+
                 //stopCommand();
                 //mService.disconnect();
                 mService.close();
@@ -341,7 +364,7 @@ public class MainActivity extends FragmentActivity {
             }
             if (action.equals(UartService.ACTION_GATT_SERVICES_DISCOVERED)) {
                 //startCommand();
-               // setCommand();
+                // setCommand();
                 Log.d(TAG, "call displaygatt");
                 displayGattServices(mService.getSupportedGattServices());
                 //mService.enableTXNotification();
@@ -377,39 +400,165 @@ public class MainActivity extends FragmentActivity {
 //                // }
 //                //});
                 //
-
-            String dataString = intent.getStringExtra(UartService.EXTRA_DATA);
-            displayData(dataString);
-
-            Integer dataInt = !dataString.equals("")?Integer.parseInt(dataString) : 0;
-            try{
-                data[position] = dataInt;
-                position++;
-                Log.d(TAG,"tryna frag");
-                Log.d(TAG, "" + position);
-                if (position  % 250 == 0){
-                    //fragment
-
-                    RealTimeUpdate realTimeData = new RealTimeUpdate();
-                    Log.d(TAG,"frag success");
-                    FragmentTransaction showFrag = getSupportFragmentManager().beginTransaction();
-                    showFrag.replace(R.id.frameLayout, realTimeData);
-                    showFrag.commit();
-                    position = 0;
-                }
-            }
-            catch (Exception e){
-                Log.e(TAG, e.toString());
-            }
+                String dataString = intent.getStringExtra(UartService.EXTRA_DATA);
+                displayGraph(dataString);
+                displayData(dataString);
+//            graph.setVisibility(View.VISIBLE);
+//            series = LineGraphSeries<DataPoint>();
+//            graph.addSeries(series);
+//
+//            String dataString = intent.getStringExtra(UartService.EXTRA_DATA);
+//            displayData(dataString);
+//
+//            Integer dataInt = !dataString.equals("")?Integer.parseInt(dataString) : 0;
+//            try{
+//                data[position] = dataInt;
+//                position++;
+//                Log.d(TAG,"tryna frag");
+//                Log.d(TAG, "" + position);
+//                if (position  % 250 == 0){
+//                    //fragment
+//
+//                    RealTimeUpdate realTimeData = new RealTimeUpdate();
+//                    Log.d(TAG,"frag success");
+//                    FragmentTransaction showFrag = getSupportFragmentManager().beginTransaction();
+//                    showFrag.replace(R.id.frameLayout, realTimeData);
+//                    showFrag.commit();
+//                    position = 0;
+//                }
+//            }
+//            catch (Exception e){
+//                Log.e(TAG, e.toString());
+//            }
             }
             //*********************//
-            if (action.equals(UartService.DEVICE_DOES_NOT_SUPPORT_UART)){
+            if (action.equals(UartService.DEVICE_DOES_NOT_SUPPORT_UART)) {
                 showMessage("Device doesn't support UART. Disconnecting");
                 //stopCommand();
                 mService.disconnect();
             }
         }
     };
+
+    private void displayGraph(String dataString) {
+        //GraphView graph = (GraphView) findViewById(R.id.graph);
+        //graph.setVisibility(View.VISIBLE);
+        k = 2;
+        setContentView(R.layout.graph_viewer);
+        Button disconnectButton = (Button) findViewById(R.id.disconnectButton);
+        disconnectButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mService.disconnect();
+                setContentView(R.layout.activity_main);
+            }
+        });
+        GraphView graph = (GraphView) findViewById(R.id.graph);
+        //graph.setVisibility(View.INVISIBLE);
+        mSeries1 = new LineGraphSeries<>();
+        //setting the graph bounds
+        graph.getViewport().setXAxisBoundsManual(true);
+        graph.getViewport().setMinX(min);
+        graph.getViewport().setMaxX(max);
+
+        graph.getViewport().setYAxisBoundsManual(true);
+        graph.getViewport().setMinY(-2.5);
+        graph.getViewport().setMaxY(100);
+
+        //enable scaling and scrolling
+        graph.getViewport().setScrollable(true);
+        graph.getViewport().setScrollableY(true);
+        graph.getViewport().setScalable(true);
+        graph.getViewport().setScalableY(true);
+
+        //other parameters
+        graph.setKeepScreenOn(true);
+        graph.getGridLabelRenderer().setHorizontalAxisTitle("Time");
+        graph.getGridLabelRenderer().setVerticalAxisTitle("mV");
+        graph.getGridLabelRenderer().setHumanRounding(true);
+        mSeries1.setColor(Color.BLUE);
+        Integer dataInt = !dataString.equals("") ? Integer.parseInt(dataString) : 0;
+
+        try {
+            data[position] = dataInt;
+            position++;
+            Log.d(TAG, "tryna frag");
+            Log.d(TAG, "" + position);
+            if (position % 250 == 0) {
+
+
+                for (int i = 0; i < 250; i++) {
+                    samples[i] = data[i];
+                }
+                if (flag < 4) {
+                    for (int i = 0; i < 250; i++)
+                        plotData[flag * 250 + i] = samples[i];
+                } else {
+                    for (int i = 0; i < 750; i++)
+                        plotData[i] = plotData[i + 250];
+
+                    for (int i = 0; i < 250; i++)
+                        plotData[i + 750] = samples[i];
+                }
+                flag++;
+
+                //dataFiltering();
+                //createPlotArray(samples);
+                //channelFilter(samples, in, fb);
+
+
+                //Get UartService data and append them on the graph
+                if (flag == 1) {
+                    for (int i = 10; i < 250; i++)
+                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 249);//1st 250 samples - 1 sec
+                } else if (flag == 2) {
+                    for (int i = 10; i < 500; i++) {
+                        if (i % 250 == 0)
+                            i = i + 10;
+                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 499);//1st 500 samples - 2 secs
+                    }
+                } else if (flag == 3) {
+                    for (int i = 10; i < 750; i++) {
+                        if (i % 250 == 0)
+                            i = i + 10;
+                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 749);//1st 750 samples - 3 secs
+                    }
+                } else if (flag == 4) {
+                    for (int i = 10; i < 1000; i++) {
+                        if (i % 250 == 0)
+                            i = i + 10;
+                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 999);// 1st 1000 samples - 4 secs
+                    }
+                } else {
+                    for (int i = 10; i < 1000; i++) {
+                        if (i % 250 == 0)
+                            i = i + 10;
+                        mSeries1.appendData(new DataPoint(min + i, plotData[i]), false, 1000);//refresh to graph the last 1000 samples - 4 last secs
+                    }
+                }
+
+                currentTimeSec = currentTimeSec + 250;
+
+                if (currentTimeSec == max) {
+                    min = min + 250;
+                    max = max + 250;
+                }
+
+                graph.addSeries(mSeries1);
+                position = 0;
+            }
+//                RealTimeUpdate realTimeData = new RealTimeUpdate();
+//                Log.d(TAG,"frag success");
+//                FragmentTransaction showFrag = getSupportFragmentManager().beginTransaction();
+//                showFrag.replace(R.id.frameLayout, realTimeData);
+//                showFrag.commit();
+//                position = 0;
+        } catch (Exception e) {
+            Log.e(TAG, e.toString());
+        }
+    }
+
+//}
 
     private void displayData(String data) {
         if (data != null) {
