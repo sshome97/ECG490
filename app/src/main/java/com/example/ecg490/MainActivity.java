@@ -1,11 +1,5 @@
 package com.example.ecg490;
 
-import androidx.activity.OnBackPressedCallback;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.fragment.app.FragmentActivity;
-import androidx.fragment.app.FragmentTransaction;
-import androidx.localbroadcastmanager.content.LocalBroadcastManager;
-
 import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -22,14 +16,11 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
-import android.graphics.Color;
-import android.nfc.Tag;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
-import android.provider.ContactsContract;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -40,6 +31,10 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.fragment.app.FragmentActivity;
+import androidx.fragment.app.FragmentTransaction;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+
 import com.google.firebase.auth.FirebaseAuth;
 import com.jjoe64.graphview.GraphView;
 import com.jjoe64.graphview.series.DataPoint;
@@ -49,7 +44,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity {
+//public class MainActivity extends AppCompatActivity
+public class MainActivity extends FragmentActivity
+{
 
     private LineGraphSeries<DataPoint> mSeries1;
     //private Runnable mTimer1;
@@ -371,67 +368,39 @@ public class MainActivity extends AppCompatActivity {
             }
             //*//*********************//*
             if (action.equals(UartService.ACTION_DATA_AVAILABLE)) {
-                //displayData(intent.getStringExtra(UartService.EXTRA_DATA));
-//                final byte[] txValue = intent.getByteArrayExtra(UartService.EXTRA_DATA);
-//                 *//*runOnUiThread(new Runnable() {
-//                     public void run() {*//*
-//                try {
-//
-//                    for (int i = 0; i < 5; i++) {
-//                        temp_sample = fromByteArray(txValue, i);
-//                        data[position] = registerValueToVolt(temp_sample);
-//                        position++;
-//                    }
-//
-//                    if(position % 250 == 0) {
-//                        //set RealTimeUpdates Arguments
-//                        RealtimeUpdates realTimeData = new RealtimeUpdates();
-//
-//                        //Begin the transaction
-//                        FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
-//                        ft.replace(R.id.frameLayout, realTimeData);
-//                        ft.commit();
-//
-//                        position = 0;
-//                    }
-//                } catch (Exception e) {
-//                    Log.e(TAG, e.toString());
-//                }
-//                // }
-//                //});
-                //
-                
-                String dataString = intent.getStringExtra(UartService.EXTRA_DATA);
-                displayGraph(dataString);
-                displayData(dataString);
-//            graph.setVisibility(View.VISIBLE);
-//            series = LineGraphSeries<DataPoint>();
-//            graph.addSeries(series);
-//
-//            String dataString = intent.getStringExtra(UartService.EXTRA_DATA);
-//            displayData(dataString);
-//
-//            Integer dataInt = !dataString.equals("")?Integer.parseInt(dataString) : 0;
-//            try{
-//                data[position] = dataInt;
-//                position++;
-//                Log.d(TAG,"tryna frag");
-//                Log.d(TAG, "" + position);
-//                if (position  % 250 == 0){
-//                    //fragment
-//
-//                    RealTimeUpdate realTimeData = new RealTimeUpdate();
-//                    Log.d(TAG,"frag success");
-//                    FragmentTransaction showFrag = getSupportFragmentManager().beginTransaction();
-//                    showFrag.replace(R.id.frameLayout, realTimeData);
-//                    showFrag.commit();
-//                    position = 0;
-//                }
-//            }
-//            catch (Exception e){
-//                Log.e(TAG, e.toString());
-//            }
+
+
+            String dataString = intent.getStringExtra(UartService.EXTRA_DATA);
+            displayData(dataString);
+
+            Integer dataInt = !dataString.equals("")?Integer.parseInt(dataString) : 0;
+            try{
+                data[position] = dataInt;
+                position++;
+                Log.d(TAG,"tryna frag");
+                Log.d(TAG, "" + position);
+//                RealTimeUpdate realTimeData = new RealTimeUpdate();
+//                Log.d(TAG,"frag success");
+//                FragmentTransaction showFrag = getSupportFragmentManager().beginTransaction();
+//                showFrag.replace(R.id.frameLayout, realTimeData);
+//                showFrag.commit();
+//                position = 0;
+                if (position  % 250 == 0){
+                    //fragment
+
+                    RealTimeUpdate realTimeData = new RealTimeUpdate();
+                    Log.d(TAG,"frag success");
+                    FragmentTransaction showFrag = getSupportFragmentManager().beginTransaction();
+                    showFrag.replace(R.id.frameLayout, realTimeData);
+                    showFrag.commit();
+                    position = 0;
+                }
             }
+            catch (Exception e){
+                Log.e(TAG, e.toString());
+            }
+            }
+
             //*********************//
             if (action.equals(UartService.DEVICE_DOES_NOT_SUPPORT_UART)) {
                 showMessage("Device doesn't support UART. Disconnecting");
@@ -441,123 +410,123 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    private void displayGraph(String dataString) {
-        //GraphView graph = (GraphView) findViewById(R.id.graph);
-        //graph.setVisibility(View.VISIBLE);
-        k = 2;
-        setContentView(R.layout.graph_viewer);
-        Button disconnectButton = (Button) findViewById(R.id.disconnectButton);
-        disconnectButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                mService.disconnect();
-                setContentView(R.layout.activity_main);
-            }
-        });
-        GraphView graph = (GraphView) findViewById(R.id.graph);
-        //graph.setVisibility(View.INVISIBLE);
-        mSeries1 = new LineGraphSeries<>();
-        //setting the graph bounds
-        graph.getViewport().setXAxisBoundsManual(true);
-        graph.getViewport().setMinX(min);
-        graph.getViewport().setMaxX(max);
-
-        graph.getViewport().setYAxisBoundsManual(true);
-        graph.getViewport().setMinY(-2.5);
-        graph.getViewport().setMaxY(100);
-
-        //enable scaling and scrolling
-        graph.getViewport().setScrollable(true);
-        graph.getViewport().setScrollableY(true);
-        graph.getViewport().setScalable(true);
-        graph.getViewport().setScalableY(true);
-
-        //other parameters
-        graph.setKeepScreenOn(true);
-        graph.getGridLabelRenderer().setHorizontalAxisTitle("Time");
-        graph.getGridLabelRenderer().setVerticalAxisTitle("mV");
-        graph.getGridLabelRenderer().setHumanRounding(true);
-        mSeries1.setColor(Color.BLUE);
-        Integer dataInt = !dataString.equals("") ? Integer.parseInt(dataString) : 0;
-
-        try {
-            data[position] = dataInt;
-            position++;
-            Log.d(TAG, "tryna frag");
-            Log.d(TAG, "" + position);
-            if (position % 250 == 0) {
-
-
-                for (int i = 0; i < 250; i++) {
-                    samples[i] = data[i];
-                }
-                if (flag < 4) {
-                    for (int i = 0; i < 250; i++)
-                        plotData[flag * 250 + i] = samples[i];
-                } else {
-                    for (int i = 0; i < 750; i++)
-                        plotData[i] = plotData[i + 250];
-
-                    for (int i = 0; i < 250; i++)
-                        plotData[i + 750] = samples[i];
-                }
-                flag++;
-
-                //dataFiltering();
-                //createPlotArray(samples);
-                //channelFilter(samples, in, fb);
-
-
-                //Get UartService data and append them on the graph
-                if (flag == 1) {
-                    for (int i = 10; i < 250; i++)
-                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 249);//1st 250 samples - 1 sec
-                } else if (flag == 2) {
-                    for (int i = 10; i < 500; i++) {
-                        if (i % 250 == 0)
-                            i = i + 10;
-                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 499);//1st 500 samples - 2 secs
-                    }
-                } else if (flag == 3) {
-                    for (int i = 10; i < 750; i++) {
-                        if (i % 250 == 0)
-                            i = i + 10;
-                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 749);//1st 750 samples - 3 secs
-                    }
-                } else if (flag == 4) {
-                    for (int i = 10; i < 1000; i++) {
-                        if (i % 250 == 0)
-                            i = i + 10;
-                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 999);// 1st 1000 samples - 4 secs
-                    }
-                } else {
-                    for (int i = 10; i < 1000; i++) {
-                        if (i % 250 == 0)
-                            i = i + 10;
-                        mSeries1.appendData(new DataPoint(min + i, plotData[i]), false, 1000);//refresh to graph the last 1000 samples - 4 last secs
-                    }
-                }
-
-                currentTimeSec = currentTimeSec + 250;
-
-                if (currentTimeSec == max) {
-                    min = min + 250;
-                    max = max + 250;
-                }
-
-                graph.addSeries(mSeries1);
-                position = 0;
-            }
-//                RealTimeUpdate realTimeData = new RealTimeUpdate();
-//                Log.d(TAG,"frag success");
-//                FragmentTransaction showFrag = getSupportFragmentManager().beginTransaction();
-//                showFrag.replace(R.id.frameLayout, realTimeData);
-//                showFrag.commit();
+//    private void displayGraph(String dataString) {
+//        //GraphView graph = (GraphView) findViewById(R.id.graph);
+//        //graph.setVisibility(View.VISIBLE);
+//        k = 2;
+//        setContentView(R.layout.graph_viewer);
+//        Button disconnectButton = (Button) findViewById(R.id.disconnectButton);
+//        disconnectButton.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                mService.disconnect();
+//                setContentView(R.layout.activity_main);
+//            }
+//        });
+//        GraphView graph = (GraphView) findViewById(R.id.graph);
+//        //graph.setVisibility(View.INVISIBLE);
+//        mSeries1 = new LineGraphSeries<>();
+//        //setting the graph bounds
+//        graph.getViewport().setXAxisBoundsManual(true);
+//        graph.getViewport().setMinX(min);
+//        graph.getViewport().setMaxX(max);
+//
+//        graph.getViewport().setYAxisBoundsManual(true);
+//        graph.getViewport().setMinY(-2.5);
+//        graph.getViewport().setMaxY(100);
+//
+//        //enable scaling and scrolling
+//        graph.getViewport().setScrollable(true);
+//        graph.getViewport().setScrollableY(true);
+//        graph.getViewport().setScalable(true);
+//        graph.getViewport().setScalableY(true);
+//
+//        //other parameters
+//        graph.setKeepScreenOn(true);
+//        graph.getGridLabelRenderer().setHorizontalAxisTitle("Time");
+//        graph.getGridLabelRenderer().setVerticalAxisTitle("mV");
+//        graph.getGridLabelRenderer().setHumanRounding(true);
+//        mSeries1.setColor(Color.BLUE);
+//        Integer dataInt = !dataString.equals("") ? Integer.parseInt(dataString) : 0;
+//
+//        try {
+//            data[position] = dataInt;
+//            position++;
+//            Log.d(TAG, "tryna frag");
+//            Log.d(TAG, "" + position);
+//            if (position % 250 == 0) {
+//
+//
+//                for (int i = 0; i < 250; i++) {
+//                    samples[i] = data[i];
+//                }
+//                if (flag < 4) {
+//                    for (int i = 0; i < 250; i++)
+//                        plotData[flag * 250 + i] = samples[i];
+//                } else {
+//                    for (int i = 0; i < 750; i++)
+//                        plotData[i] = plotData[i + 250];
+//
+//                    for (int i = 0; i < 250; i++)
+//                        plotData[i + 750] = samples[i];
+//                }
+//                flag++;
+//
+//                //dataFiltering();
+//                //createPlotArray(samples);
+//                //channelFilter(samples, in, fb);
+//
+//
+//                //Get UartService data and append them on the graph
+//                if (flag == 1) {
+//                    for (int i = 10; i < 250; i++)
+//                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 249);//1st 250 samples - 1 sec
+//                } else if (flag == 2) {
+//                    for (int i = 10; i < 500; i++) {
+//                        if (i % 250 == 0)
+//                            i = i + 10;
+//                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 499);//1st 500 samples - 2 secs
+//                    }
+//                } else if (flag == 3) {
+//                    for (int i = 10; i < 750; i++) {
+//                        if (i % 250 == 0)
+//                            i = i + 10;
+//                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 749);//1st 750 samples - 3 secs
+//                    }
+//                } else if (flag == 4) {
+//                    for (int i = 10; i < 1000; i++) {
+//                        if (i % 250 == 0)
+//                            i = i + 10;
+//                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 999);// 1st 1000 samples - 4 secs
+//                    }
+//                } else {
+//                    for (int i = 10; i < 1000; i++) {
+//                        if (i % 250 == 0)
+//                            i = i + 10;
+//                        mSeries1.appendData(new DataPoint(min + i, plotData[i]), false, 1000);//refresh to graph the last 1000 samples - 4 last secs
+//                    }
+//                }
+//
+//                currentTimeSec = currentTimeSec + 250;
+//
+//                if (currentTimeSec == max) {
+//                    min = min + 250;
+//                    max = max + 250;
+//                }
+//
+//                graph.addSeries(mSeries1);
 //                position = 0;
-        } catch (Exception e) {
-            Log.e(TAG, e.toString());
-        }
-    }
+//            }
+////                RealTimeUpdate realTimeData = new RealTimeUpdate();
+////                Log.d(TAG,"frag success");
+////                FragmentTransaction showFrag = getSupportFragmentManager().beginTransaction();
+////                showFrag.replace(R.id.frameLayout, realTimeData);
+////                showFrag.commit();
+////                position = 0;
+//        } catch (Exception e) {
+//            Log.e(TAG, e.toString());
+//        }
+//    }
 
 //}
 
