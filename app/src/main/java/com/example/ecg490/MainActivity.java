@@ -28,6 +28,7 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -90,7 +91,6 @@ public class MainActivity extends FragmentActivity
     int temp_sample;
     int position = 0;
 
-
     @Override
     public void onBackPressed() {
         if (k ==1) {
@@ -99,11 +99,9 @@ public class MainActivity extends FragmentActivity
                     .setMessage("Are you sure you want to exit?")
                     .setNegativeButton(android.R.string.no, null)
                     .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
-
                         public void onClick(DialogInterface arg0, int arg1) {
                             MainActivity.super.onBackPressed();
                             mService.disconnect();
-
                         }
                     }).create().show();
         } else if (k ==2){
@@ -123,8 +121,6 @@ public class MainActivity extends FragmentActivity
             finish();
             return;
         }
-//        GraphView graph = (GraphView) findViewById(R.id.graph);
-//        graph.setVisibility(View.INVISIBLE);
         k = 1;
         BLEListView = (ListView) findViewById(R.id.BLEDevices);
         listAdapter = new ArrayAdapter<String>(this, R.layout.message_detail);
@@ -169,13 +165,14 @@ public class MainActivity extends FragmentActivity
             }
         });
 
+
     }
+
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu, menu);
         return true;
-
     }
 
     @Override
@@ -190,13 +187,13 @@ public class MainActivity extends FragmentActivity
                 Toast.makeText(this, "You have been logged out", Toast.LENGTH_SHORT).show();
                 break;
         }
-
         return true;
     }
 
     @Override
     public void onStart() {
         super.onStart();
+
     }
 
     @Override
@@ -244,7 +241,6 @@ public class MainActivity extends FragmentActivity
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        //added supercall
         super.onActivityResult(requestCode, resultCode, data);
         switch (requestCode) {
             case REQUEST_SELECT_DEVICE:
@@ -321,6 +317,7 @@ public class MainActivity extends FragmentActivity
             mService = null;
         }
     };
+
     private Handler mHandler = new Handler() {
         @Override
         //Handler events that received from UART service
@@ -410,125 +407,6 @@ public class MainActivity extends FragmentActivity
         }
     };
 
-//    private void displayGraph(String dataString) {
-//        //GraphView graph = (GraphView) findViewById(R.id.graph);
-//        //graph.setVisibility(View.VISIBLE);
-//        k = 2;
-//        setContentView(R.layout.graph_viewer);
-//        Button disconnectButton = (Button) findViewById(R.id.disconnectButton);
-//        disconnectButton.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View v) {
-//                mService.disconnect();
-//                setContentView(R.layout.activity_main);
-//            }
-//        });
-//        GraphView graph = (GraphView) findViewById(R.id.graph);
-//        //graph.setVisibility(View.INVISIBLE);
-//        mSeries1 = new LineGraphSeries<>();
-//        //setting the graph bounds
-//        graph.getViewport().setXAxisBoundsManual(true);
-//        graph.getViewport().setMinX(min);
-//        graph.getViewport().setMaxX(max);
-//
-//        graph.getViewport().setYAxisBoundsManual(true);
-//        graph.getViewport().setMinY(-2.5);
-//        graph.getViewport().setMaxY(100);
-//
-//        //enable scaling and scrolling
-//        graph.getViewport().setScrollable(true);
-//        graph.getViewport().setScrollableY(true);
-//        graph.getViewport().setScalable(true);
-//        graph.getViewport().setScalableY(true);
-//
-//        //other parameters
-//        graph.setKeepScreenOn(true);
-//        graph.getGridLabelRenderer().setHorizontalAxisTitle("Time");
-//        graph.getGridLabelRenderer().setVerticalAxisTitle("mV");
-//        graph.getGridLabelRenderer().setHumanRounding(true);
-//        mSeries1.setColor(Color.BLUE);
-//        Integer dataInt = !dataString.equals("") ? Integer.parseInt(dataString) : 0;
-//
-//        try {
-//            data[position] = dataInt;
-//            position++;
-//            Log.d(TAG, "tryna frag");
-//            Log.d(TAG, "" + position);
-//            if (position % 250 == 0) {
-//
-//
-//                for (int i = 0; i < 250; i++) {
-//                    samples[i] = data[i];
-//                }
-//                if (flag < 4) {
-//                    for (int i = 0; i < 250; i++)
-//                        plotData[flag * 250 + i] = samples[i];
-//                } else {
-//                    for (int i = 0; i < 750; i++)
-//                        plotData[i] = plotData[i + 250];
-//
-//                    for (int i = 0; i < 250; i++)
-//                        plotData[i + 750] = samples[i];
-//                }
-//                flag++;
-//
-//                //dataFiltering();
-//                //createPlotArray(samples);
-//                //channelFilter(samples, in, fb);
-//
-//
-//                //Get UartService data and append them on the graph
-//                if (flag == 1) {
-//                    for (int i = 10; i < 250; i++)
-//                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 249);//1st 250 samples - 1 sec
-//                } else if (flag == 2) {
-//                    for (int i = 10; i < 500; i++) {
-//                        if (i % 250 == 0)
-//                            i = i + 10;
-//                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 499);//1st 500 samples - 2 secs
-//                    }
-//                } else if (flag == 3) {
-//                    for (int i = 10; i < 750; i++) {
-//                        if (i % 250 == 0)
-//                            i = i + 10;
-//                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 749);//1st 750 samples - 3 secs
-//                    }
-//                } else if (flag == 4) {
-//                    for (int i = 10; i < 1000; i++) {
-//                        if (i % 250 == 0)
-//                            i = i + 10;
-//                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 999);// 1st 1000 samples - 4 secs
-//                    }
-//                } else {
-//                    for (int i = 10; i < 1000; i++) {
-//                        if (i % 250 == 0)
-//                            i = i + 10;
-//                        mSeries1.appendData(new DataPoint(min + i, plotData[i]), false, 1000);//refresh to graph the last 1000 samples - 4 last secs
-//                    }
-//                }
-//
-//                currentTimeSec = currentTimeSec + 250;
-//
-//                if (currentTimeSec == max) {
-//                    min = min + 250;
-//                    max = max + 250;
-//                }
-//
-//                graph.addSeries(mSeries1);
-//                position = 0;
-//            }
-////                RealTimeUpdate realTimeData = new RealTimeUpdate();
-////                Log.d(TAG,"frag success");
-////                FragmentTransaction showFrag = getSupportFragmentManager().beginTransaction();
-////                showFrag.replace(R.id.frameLayout, realTimeData);
-////                showFrag.commit();
-////                position = 0;
-//        } catch (Exception e) {
-//            Log.e(TAG, e.toString());
-//        }
-//    }
-
-//}
 
     private void displayData(String data) {
         if (data != null) {
@@ -542,7 +420,6 @@ public class MainActivity extends FragmentActivity
         String uuid = null;
         String unknownServiceString = getResources().getString(R.string.unknown_service);
         ArrayList<HashMap<String, String>> gattServiceData = new ArrayList<HashMap<String, String>>();
-
 
         // Loops through available GATT Services.
         for (BluetoothGattService gattService : gattServices) {
@@ -614,6 +491,7 @@ public class MainActivity extends FragmentActivity
         bindService(bindIntent, mServiceConnection, Context.BIND_AUTO_CREATE);
         LocalBroadcastManager.getInstance(this).registerReceiver(UARTStatusChangeReceiver, makeGattUpdateIntentFilter());
     }
+
     private static IntentFilter makeGattUpdateIntentFilter() {
         final IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(UartService.ACTION_GATT_CONNECTED);
@@ -623,74 +501,9 @@ public class MainActivity extends FragmentActivity
         intentFilter.addAction(UartService.DEVICE_DOES_NOT_SUPPORT_UART);
         return intentFilter;
     }
+
     private void showMessage(String msg) {
         Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
 
     }
-    //FANCY COULD BE USEFUL
-//    public void onBackPressed() {
-//        if (mState == UART_PROFILE_CONNECTED) {
-//            Intent startMain = new Intent(Intent.ACTION_MAIN);
-//            startMain.addCategory(Intent.CATEGORY_HOME);
-//            startMain.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-//            startActivity(startMain);
-//            //showMessage("nRFUART's running in background.\n             Disconnect to exit");
-//        }
-//        else {
-//            new AlertDialog.Builder(this)
-//                    .setIcon(android.R.drawable.ic_dialog_alert)
-//                    .setTitle(R.string.popup_title)
-//                    .setMessage(R.string.popup_message)
-//                    .setPositiveButton(R.string.popup_yes, new DialogInterface.OnClickListener()
-//                    {
-//                        @Override
-//                        public void onClick(DialogInterface dialog, int which) {
-//                            finish();
-//                        }
-//                    })
-//                    .setNegativeButton(R.string.popup_no, null)
-//                    .show();
-//        }
-//    }
-    //CONVERTING FROM BYTES TO DATA--->ALSO CHECK CHICKENJOHN
-//    int fromByteArray(byte[] bytes, int position) {
-//        if((bytes[position*3]>>7) == 1)
-//            return (bytes[0 + position*3]) << 16 | (bytes[1 + position*3] & 0xFF) << 8 | (bytes[2 + position*3] & 0xFF);
-//        else
-//            return (bytes[0 + position*3]) << 16 | (bytes[1 + position*3] & 0xFF) << 8 | (bytes[2 + position*3] & 0xFF);
-//    }
-//    float registerValueToVolt(int value){
-//        return (float) (((value/(Math.pow(2,23)-1))) * 2.5f);
-//    }
-//    private void broadcastUpdate(final String action) {
-//        final Intent intent = new Intent(action);
-//        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
-//    }
-//    //Configuration commands
-//    public void startCommand(){
-//        byte[] configuration = new byte[1];
-//        configuration[0] = 0;
-//        //mService.writeRXCharacteristic(configuration);
-//    }
-//
-//    public void stopCommand(){
-//        byte[] configuration = new byte[1];
-//        configuration[0] = 1;
-//        mService.writeRXCharacteristic(configuration);
-//    }
-//    public void setCommand(){
-//        stopCommand();
-//        android.os.SystemClock.sleep(50);
-//        byte[] configuration = new byte[3];
-//        configuration[0] = 2;
-//        for(int i=0; i <=22; i++){
-//            //configuration[1] = (byte) EcgConfig[i][0];
-//            //configuration[2] = (byte) EcgConfig[i][1];
-//            //mService.writeRXCharacteristic(configuration);
-//            android.os.SystemClock.sleep(50);
-//            android.os.SystemClock.sleep(50);
-//            android.os.SystemClock.sleep(50);
-//        }
-//        startCommand();
-//    }
 }
