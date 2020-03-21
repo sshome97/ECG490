@@ -28,12 +28,10 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
-import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.fragment.app.FragmentActivity;
-import androidx.fragment.app.FragmentTransaction;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import com.google.firebase.auth.FirebaseAuth;
@@ -91,6 +89,11 @@ public class MainActivity extends FragmentActivity
     int temp_sample;
     int position = 0;
 
+    public void disconnect(){
+
+        mService.disconnect();
+        setContentView(R.layout.activity_main);
+    }
     @Override
     public void onBackPressed() {
         if (k ==1) {
@@ -209,13 +212,15 @@ public class MainActivity extends FragmentActivity
         unbindService(mServiceConnection);
         mService.stopSelf();
         mService = null;
+//        Intent myService = new Intent(MainActivity.this, UartService.class);
+//        stopService(myService);
     }
 
     @Override
     protected void onStop() {
         Log.d(TAG, "onStop");
         super.onStop();
-        mService.disconnect();
+        //mService.disconnect();
 
     }
 
@@ -365,37 +370,40 @@ public class MainActivity extends FragmentActivity
             }
             //*//*********************//*
             if (action.equals(UartService.ACTION_DATA_AVAILABLE)) {
-
-
             String dataString = intent.getStringExtra(UartService.EXTRA_DATA);
-            displayData(dataString);
+            Log.d(TAG,dataString);
 
-            Integer dataInt = !dataString.equals("")?Integer.parseInt(dataString) : 0;
-            try{
-                data[position] = dataInt;
-                position++;
-                Log.d(TAG,"tryna frag");
-                Log.d(TAG, "" + position);
-//                RealTimeUpdate realTimeData = new RealTimeUpdate();
-//                Log.d(TAG,"frag success");
-//                FragmentTransaction showFrag = getSupportFragmentManager().beginTransaction();
-//                showFrag.replace(R.id.frameLayout, realTimeData);
-//                showFrag.commit();
-//                position = 0;
-                if (position  % 250 == 0){
-                    //fragment
+                Intent intGraph = new Intent(MainActivity.this, GraphActivity.class);
+                intent.putExtra("Data", dataString);
+                startActivity(intGraph);
 
-                    RealTimeUpdate realTimeData = new RealTimeUpdate();
-                    Log.d(TAG,"frag success");
-                    FragmentTransaction showFrag = getSupportFragmentManager().beginTransaction();
-                    showFrag.replace(R.id.frameLayout, realTimeData);
-                    showFrag.commit();
-                    position = 0;
-                }
-            }
-            catch (Exception e){
-                Log.e(TAG, e.toString());
-            }
+//            displayData(dataString);
+//
+//            Integer dataInt = !dataString.equals("")?Integer.parseInt(dataString) : 0;
+//            try{
+//                data[position] = dataInt;
+//                position++;
+//                Log.d(TAG,"tryna frag");
+//                Log.d(TAG, "" + position);
+////                RealTimeUpdate realTimeData = new RealTimeUpdate();
+////                Log.d(TAG,"frag success");
+////                FragmentTransaction showFrag = getSupportFragmentManager().beginTransaction();
+////                showFrag.replace(R.id.frameLayout, realTimeData);
+////                showFrag.commit();
+////                position = 0;
+//                if (position  % 10 == 0){
+//                    //fragment
+//                    FragmentManager fragmentManager = getSupportFragmentManager();
+//                    FragmentTransaction showFrag = fragmentManager.beginTransaction();
+//                    RealTimeUpdate realTimeDataFrag = new RealTimeUpdate();
+//                    showFrag.replace(R.id.frameLayout, realTimeDataFrag);
+//                    showFrag.commit();
+//                    position = 0;
+//                }
+//            }
+//            catch (Exception e){
+//                Log.e(TAG, e.toString());
+//            }
             }
 
             //*********************//
@@ -488,7 +496,8 @@ public class MainActivity extends FragmentActivity
     //called in on create
     private void service_init() {
         Intent bindIntent = new Intent(this, UartService.class);
-        bindService(bindIntent, mServiceConnection, Context.BIND_AUTO_CREATE);
+//        startService(bindIntent);
+       bindService(bindIntent, mServiceConnection, Context.BIND_AUTO_CREATE);
         LocalBroadcastManager.getInstance(this).registerReceiver(UARTStatusChangeReceiver, makeGattUpdateIntentFilter());
     }
 

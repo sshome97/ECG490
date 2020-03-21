@@ -6,6 +6,9 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.Spinner;
 
 import androidx.fragment.app.Fragment;
 
@@ -26,6 +29,8 @@ public class RealTimeUpdate extends Fragment {
     float in[] = new float[3];
     float fb[] = new float[2];
 
+    private UartService mService = null;
+
     //public native void channelFilter(float[] input, float[] _in, float[] _fb);
 
     @Override
@@ -34,6 +39,19 @@ public class RealTimeUpdate extends Fragment {
         View rootView = inflater.inflate(R.layout.graph_viewer, container, false);
         GraphView graph = (GraphView) rootView.findViewById(R.id.graph);
         mSeries1 = new LineGraphSeries<>();
+        Spinner mySpinner = (Spinner) rootView.findViewById(R.id.spinner1);
+        ArrayAdapter<String> myAdapter = new ArrayAdapter<String>(this.getActivity(), android.R.layout.simple_list_item_1, getResources().getStringArray(R.array.leads));
+        myAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        mySpinner.setAdapter(myAdapter);
+
+        Button disconnectButton = (Button) rootView.findViewById(R.id.disconnectButton);
+        disconnectButton.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                MainActivity activity = (MainActivity) getActivity();
+                activity.disconnect();
+            }
+        });
+
 
         //setting the graph bounds
         graph.getViewport().setXAxisBoundsManual(true);
@@ -60,39 +78,39 @@ public class RealTimeUpdate extends Fragment {
 
         //Get UartService data and append them on the graph
         if (flag == 1) {
-            for (int i = 10; i < 250; i++)
+            for (int i = 10; i < 100; i++)
                 mSeries1.appendData(new DataPoint(i, plotData[i]), false, 249);//1st 250 samples - 1 sec
         } else if (flag == 2) {
-            for (int i = 10; i < 500; i++) {
+            for (int i = 10; i < 200; i++) {
                 if (i % 250 == 0)
                     i = i + 10;
                 mSeries1.appendData(new DataPoint(i, plotData[i]), false, 499);//1st 500 samples - 2 secs
             }
         } else if (flag == 3) {
-            for (int i = 10; i < 750; i++) {
+            for (int i = 10; i < 300; i++) {
                 if (i % 250 == 0)
                     i = i + 10;
                 mSeries1.appendData(new DataPoint(i, plotData[i]), false, 749);//1st 750 samples - 3 secs
             }
         } else if (flag == 4) {
-            for (int i = 10; i < 1000; i++) {
+            for (int i = 10; i < 400; i++) {
                 if (i % 250 == 0)
                     i = i + 10;
                 mSeries1.appendData(new DataPoint(i, plotData[i]), false, 999);// 1st 1000 samples - 4 secs
             }
         } else {
-            for (int i = 10; i < 1000; i++) {
+            for (int i = 10; i < 500; i++) {
                 if (i % 250 == 0)
                     i = i + 10;
                 mSeries1.appendData(new DataPoint(min + i, plotData[i]), false, 1000);//refresh to graph the last 1000 samples - 4 last secs
             }
         }
 
-        currentTimeSec = currentTimeSec + 250;
+        currentTimeSec = currentTimeSec + 100;
 
         if (currentTimeSec == max) {
-            min = min + 250;
-            max = max + 250;
+            min = min + 100;
+            max = max + 100;
         }
 
         graph.addSeries(mSeries1);
@@ -103,7 +121,7 @@ public class RealTimeUpdate extends Fragment {
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
-        for (int i = 0; i < 250; i++) {
+        for (int i = 0; i < 100; i++) {
             samples[i] = ((MainActivity) getActivity()).data[i];
         }
 
@@ -119,14 +137,14 @@ public class RealTimeUpdate extends Fragment {
 
     public void createPlotArray(float[] temp) {
         if (flag < 4) {
-            for (int i = 0; i < 250; i++)
-                plotData[flag * 250 + i] = temp[i];
+            for (int i = 0; i < 100; i++)
+                plotData[flag * 100 + i] = temp[i];
         } else {
-            for (int i = 0; i < 750; i++)
-                plotData[i] = plotData[i + 250];
+            for (int i = 0; i < 300; i++)
+                plotData[i] = plotData[i + 100];
 
-            for (int i = 0; i < 250; i++)
-                plotData[i + 750] = temp[i];
+            for (int i = 0; i < 100; i++)
+                plotData[i + 300] = temp[i];
         }
         flag++;
     }

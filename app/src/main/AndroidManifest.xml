@@ -29,6 +29,7 @@
             android:name=".DeviceListActivity"
             android:screenOrientation="portrait" />
         <activity android:name=".MainActivity" />
+        <activity android:name=".GraphActivity"></activity>
 
         <service
             android:name=".UartService"

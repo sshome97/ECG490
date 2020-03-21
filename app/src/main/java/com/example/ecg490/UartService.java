@@ -279,7 +279,12 @@ public class UartService extends Service {
             if (mGatt == null) return null;
             return mGatt.getServices();
         }
-
+//    @Override
+//    public void onDestroy() {
+//            unregisterReceiver(Re);
+//        super.onDestroy();
+//
+//    }
         private void showMessage(String msg) {
             Log.e(TAG, msg);
         }
