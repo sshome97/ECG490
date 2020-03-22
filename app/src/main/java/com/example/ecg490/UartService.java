@@ -233,8 +233,6 @@ public class UartService extends Service {
 
             intent.putExtra(EXTRA_DATA, String.valueOf(ECGData).trim());
             LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
-
-            LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
         }
     }
 

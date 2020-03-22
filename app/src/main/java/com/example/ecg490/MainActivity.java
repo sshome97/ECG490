@@ -395,9 +395,10 @@ public class MainActivity extends AppCompatActivity {
             }
             //*//*********************//*
             if (action.equals(UartService.ACTION_DATA_AVAILABLE)) {
+                Log.d(TAG, "data available");
                 String dataString = intent.getStringExtra(UartService.EXTRA_DATA);
+                Log.d(TAG, dataString);
                 displayGraph(dataString);
-                displayData(dataString);
                 if (action.equals(UartService.DEVICE_DOES_NOT_SUPPORT_UART)) {
                     showMessage("Device doesn't support UART. Disconnecting");
                     //stopCommand();
@@ -440,7 +441,6 @@ public class MainActivity extends AppCompatActivity {
         try {
             data[position] = dataInt;
             position++;
-            Log.d(TAG, "tryna frag");
             Log.d(TAG, "" + position);
             if (position % 100 == 0) {
 
@@ -510,14 +510,8 @@ public class MainActivity extends AppCompatActivity {
             Log.e(TAG, e.toString());
         }
     }
-
 //}
 
-    private void displayData(String data) {
-        if (data != null) {
-            mDataField.setText(data);
-        }
-    }
 
     private void displayGattServices(List<BluetoothGattService> gattServices) {
 
