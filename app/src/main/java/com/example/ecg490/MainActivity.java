@@ -1,11 +1,5 @@
 package com.example.ecg490;
 
-import androidx.activity.OnBackPressedCallback;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.fragment.app.FragmentActivity;
-import androidx.fragment.app.FragmentTransaction;
-import androidx.localbroadcastmanager.content.LocalBroadcastManager;
-
 import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -23,13 +17,11 @@ import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
-import android.nfc.Tag;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
-import android.provider.ContactsContract;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -37,8 +29,12 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.jjoe64.graphview.GraphView;
@@ -53,11 +49,11 @@ public class MainActivity extends AppCompatActivity {
 
     private LineGraphSeries<DataPoint> mSeries1;
     //private Runnable mTimer1;
-    float samples[] = new float[250];
-    static float plotData[] = new float[1000];
+    float samples[] = new float[100];
+    static float plotData[] = new float[400];
     public static int currentTimeSec = 0;
     public static int min = 0;
-    public static int max = 1000;
+    public static int max = 400;
     public static int flag = 0;
     float in[] = new float[3];
     float fb[] = new float[2];
@@ -73,8 +69,9 @@ public class MainActivity extends AppCompatActivity {
     private ScanSettings settings;
     private TextView mDataField;
 
-    private int k;
     private Button disconnectButton;
+    private Button saveButton;
+    private Spinner mySpinner;
 
     private int mState = UART_PROFILE_DISCONNECTED;
     private UartService mService = null;
@@ -89,31 +86,26 @@ public class MainActivity extends AppCompatActivity {
     private BluetoothGattCharacteristic characteristicTX;
     private BluetoothGattCharacteristic mNotifyCharacteristic;
 
-    float data[] = new float[250];
+    float data[] = new float[100];
     int temp_sample;
     int position = 0;
 
 
     @Override
     public void onBackPressed() {
-        if (k ==1) {
-            new AlertDialog.Builder(this)
-                    .setTitle("Really Exit?")
-                    .setMessage("Are you sure you want to exit?")
-                    .setNegativeButton(android.R.string.no, null)
-                    .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+        new AlertDialog.Builder(this)
+                .setTitle("Really Exit?")
+                .setMessage("Are you sure you want to exit?")
+                .setNegativeButton(android.R.string.no, null)
+                .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
 
-                        public void onClick(DialogInterface arg0, int arg1) {
-                            MainActivity.super.onBackPressed();
-                            mService.disconnect();
+                    public void onClick(DialogInterface arg0, int arg1) {
+                        MainActivity.super.onBackPressed();
+                        mService.disconnect();
 
-                        }
-                    }).create().show();
-        } else if (k ==2){
-            setContentView(R.layout.activity_main);
-            k = 1;
-            mService.disconnect();
-        }
+                    }
+                }).create().show();
+
     }
 
     @Override
@@ -126,16 +118,30 @@ public class MainActivity extends AppCompatActivity {
             finish();
             return;
         }
-//        GraphView graph = (GraphView) findViewById(R.id.graph);
-//        graph.setVisibility(View.INVISIBLE);
-        k = 1;
+
         BLEListView = (ListView) findViewById(R.id.BLEDevices);
         listAdapter = new ArrayAdapter<String>(this, R.layout.message_detail);
         BLEListView.setAdapter(listAdapter);
         BLEListView.setDivider(null);
         connectButton = (Button) findViewById(R.id.connectButton);
-
         mDataField = (TextView) findViewById(R.id.data_value);
+
+        graph = (GraphView) findViewById(R.id.graph);
+        graph.setVisibility(View.INVISIBLE);
+
+        disconnectButton = (Button) findViewById(R.id.disconnectButton);
+        disconnectButton.setVisibility(View.INVISIBLE);
+
+        saveButton = (Button) findViewById(R.id.saveButton);
+        saveButton.setVisibility(View.INVISIBLE);
+
+        mySpinner = (Spinner) findViewById(R.id.spinner1);
+
+        ArrayAdapter<String> myAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, getResources().getStringArray(R.array.leads));
+        myAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        mySpinner.setAdapter(myAdapter);
+        mySpinner.setVisibility(View.INVISIBLE);
+
         service_init();
         CheckBlueToothState(); // Make sure bluetooth is enabled, if not, prompt the user to enable it
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -169,6 +175,17 @@ public class MainActivity extends AppCompatActivity {
                         startActivityForResult(newIntent, REQUEST_SELECT_DEVICE);
                     }
                 }
+            }
+        });
+        disconnectButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mService.disconnect();
+                graph.setVisibility(View.INVISIBLE);
+                disconnectButton.setVisibility(View.INVISIBLE);
+                saveButton.setVisibility(View.INVISIBLE);
+                mySpinner.setVisibility(View.INVISIBLE);
+                connectButton.setVisibility(View.VISIBLE);
             }
         });
 
@@ -343,16 +360,22 @@ public class MainActivity extends AppCompatActivity {
                 /*runOnUiThread(new Runnable() {
                     public void run() {*/
                 Log.d(TAG, "UART_CONNECT_MSG");
+                Toast.makeText(MainActivity.this, "Successfully Connected", Toast.LENGTH_SHORT).show();
+
 
                 mState = UART_PROFILE_CONNECTED;
                 //   }
                 // });
+                connectButton.setVisibility(View.INVISIBLE);
+                graph.setVisibility(View.VISIBLE);
+                saveButton.setVisibility(View.VISIBLE);
+                disconnectButton.setVisibility(View.VISIBLE);
+                mySpinner.setVisibility(View.VISIBLE);
             }
             if (action.equals(UartService.ACTION_GATT_DISCONNECTED)) {
                 //runOnUiThread(new Runnable() {
                 //  public void run() {
                 Log.d(TAG, "UART_DISCONNECT_MSG");
-                connectButton.setText("Connect");
                 mState = UART_PROFILE_DISCONNECTED;
                 mDataField.setText("");
 
@@ -368,75 +391,18 @@ public class MainActivity extends AppCompatActivity {
                 Log.d(TAG, "call displaygatt");
                 displayGattServices(mService.getSupportedGattServices());
                 //mService.enableTXNotification();
+
             }
             //*//*********************//*
             if (action.equals(UartService.ACTION_DATA_AVAILABLE)) {
-                //displayData(intent.getStringExtra(UartService.EXTRA_DATA));
-//                final byte[] txValue = intent.getByteArrayExtra(UartService.EXTRA_DATA);
-//                 *//*runOnUiThread(new Runnable() {
-//                     public void run() {*//*
-//                try {
-//
-//                    for (int i = 0; i < 5; i++) {
-//                        temp_sample = fromByteArray(txValue, i);
-//                        data[position] = registerValueToVolt(temp_sample);
-//                        position++;
-//                    }
-//
-//                    if(position % 250 == 0) {
-//                        //set RealTimeUpdates Arguments
-//                        RealtimeUpdates realTimeData = new RealtimeUpdates();
-//
-//                        //Begin the transaction
-//                        FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
-//                        ft.replace(R.id.frameLayout, realTimeData);
-//                        ft.commit();
-//
-//                        position = 0;
-//                    }
-//                } catch (Exception e) {
-//                    Log.e(TAG, e.toString());
-//                }
-//                // }
-//                //});
-                //
-                
                 String dataString = intent.getStringExtra(UartService.EXTRA_DATA);
                 displayGraph(dataString);
                 displayData(dataString);
-//            graph.setVisibility(View.VISIBLE);
-//            series = LineGraphSeries<DataPoint>();
-//            graph.addSeries(series);
-//
-//            String dataString = intent.getStringExtra(UartService.EXTRA_DATA);
-//            displayData(dataString);
-//
-//            Integer dataInt = !dataString.equals("")?Integer.parseInt(dataString) : 0;
-//            try{
-//                data[position] = dataInt;
-//                position++;
-//                Log.d(TAG,"tryna frag");
-//                Log.d(TAG, "" + position);
-//                if (position  % 250 == 0){
-//                    //fragment
-//
-//                    RealTimeUpdate realTimeData = new RealTimeUpdate();
-//                    Log.d(TAG,"frag success");
-//                    FragmentTransaction showFrag = getSupportFragmentManager().beginTransaction();
-//                    showFrag.replace(R.id.frameLayout, realTimeData);
-//                    showFrag.commit();
-//                    position = 0;
-//                }
-//            }
-//            catch (Exception e){
-//                Log.e(TAG, e.toString());
-//            }
-            }
-            //*********************//
-            if (action.equals(UartService.DEVICE_DOES_NOT_SUPPORT_UART)) {
-                showMessage("Device doesn't support UART. Disconnecting");
-                //stopCommand();
-                mService.disconnect();
+                if (action.equals(UartService.DEVICE_DOES_NOT_SUPPORT_UART)) {
+                    showMessage("Device doesn't support UART. Disconnecting");
+                    //stopCommand();
+                    mService.disconnect();
+                }
             }
         }
     };
@@ -444,17 +410,8 @@ public class MainActivity extends AppCompatActivity {
     private void displayGraph(String dataString) {
         //GraphView graph = (GraphView) findViewById(R.id.graph);
         //graph.setVisibility(View.VISIBLE);
-        k = 2;
-        setContentView(R.layout.graph_viewer);
-        Button disconnectButton = (Button) findViewById(R.id.disconnectButton);
-        disconnectButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                mService.disconnect();
-                setContentView(R.layout.activity_main);
-            }
-        });
-        GraphView graph = (GraphView) findViewById(R.id.graph);
+
+//        GraphView graph = (GraphView) findViewById(R.id.graph);
         //graph.setVisibility(View.INVISIBLE);
         mSeries1 = new LineGraphSeries<>();
         //setting the graph bounds
@@ -467,6 +424,7 @@ public class MainActivity extends AppCompatActivity {
         graph.getViewport().setMaxY(100);
 
         //enable scaling and scrolling
+
         graph.getViewport().setScrollable(true);
         graph.getViewport().setScrollableY(true);
         graph.getViewport().setScalable(true);
@@ -476,7 +434,6 @@ public class MainActivity extends AppCompatActivity {
         graph.setKeepScreenOn(true);
         graph.getGridLabelRenderer().setHorizontalAxisTitle("Time");
         graph.getGridLabelRenderer().setVerticalAxisTitle("mV");
-        graph.getGridLabelRenderer().setHumanRounding(true);
         mSeries1.setColor(Color.BLUE);
         Integer dataInt = !dataString.equals("") ? Integer.parseInt(dataString) : 0;
 
@@ -485,21 +442,21 @@ public class MainActivity extends AppCompatActivity {
             position++;
             Log.d(TAG, "tryna frag");
             Log.d(TAG, "" + position);
-            if (position % 250 == 0) {
+            if (position % 100 == 0) {
 
 
-                for (int i = 0; i < 250; i++) {
+                for (int i = 0; i < 100; i++) {
                     samples[i] = data[i];
                 }
                 if (flag < 4) {
-                    for (int i = 0; i < 250; i++)
-                        plotData[flag * 250 + i] = samples[i];
+                    for (int i = 0; i < 100; i++)
+                        plotData[flag * 100 + i] = samples[i];
                 } else {
-                    for (int i = 0; i < 750; i++)
-                        plotData[i] = plotData[i + 250];
+                    for (int i = 0; i < 300; i++)
+                        plotData[i] = plotData[i + 100];
 
-                    for (int i = 0; i < 250; i++)
-                        plotData[i + 750] = samples[i];
+                    for (int i = 0; i < 100; i++)
+                        plotData[i + 300] = samples[i];
                 }
                 flag++;
 
@@ -510,50 +467,45 @@ public class MainActivity extends AppCompatActivity {
 
                 //Get UartService data and append them on the graph
                 if (flag == 1) {
-                    for (int i = 10; i < 250; i++)
-                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 249);//1st 250 samples - 1 sec
+                    for (int i = 10; i < 100; i++)
+                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 249);//1st 100 samples - 1 sec
                 } else if (flag == 2) {
-                    for (int i = 10; i < 500; i++) {
-                        if (i % 250 == 0)
+                    for (int i = 10; i < 200; i++) {
+                        if (i % 100 == 0)
                             i = i + 10;
-                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 499);//1st 500 samples - 2 secs
+                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 499);//1st 200 samples - 2 secs
                     }
                 } else if (flag == 3) {
-                    for (int i = 10; i < 750; i++) {
-                        if (i % 250 == 0)
+                    for (int i = 10; i < 300; i++) {
+                        if (i % 100 == 0)
                             i = i + 10;
-                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 749);//1st 750 samples - 3 secs
+                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 749);//1st 300 samples - 3 secs
                     }
                 } else if (flag == 4) {
-                    for (int i = 10; i < 1000; i++) {
-                        if (i % 250 == 0)
+                    for (int i = 10; i < 400; i++) {
+                        if (i % 100 == 0)
                             i = i + 10;
-                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 999);// 1st 1000 samples - 4 secs
+                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 999);// 1st 400 samples - 4 secs
                     }
                 } else {
-                    for (int i = 10; i < 1000; i++) {
-                        if (i % 250 == 0)
+                    for (int i = 10; i < 400; i++) {
+                        if (i % 100 == 0)
                             i = i + 10;
-                        mSeries1.appendData(new DataPoint(min + i, plotData[i]), false, 1000);//refresh to graph the last 1000 samples - 4 last secs
+                        mSeries1.appendData(new DataPoint(min + i, plotData[i]), false, 400);//refresh to graph the last 400 samples - 4 last secs
                     }
                 }
 
-                currentTimeSec = currentTimeSec + 250;
+                currentTimeSec = currentTimeSec + 100;
 
                 if (currentTimeSec == max) {
-                    min = min + 250;
-                    max = max + 250;
+                    min = min + 100;
+                    max = max + 100;
                 }
 
                 graph.addSeries(mSeries1);
                 position = 0;
             }
-//                RealTimeUpdate realTimeData = new RealTimeUpdate();
-//                Log.d(TAG,"frag success");
-//                FragmentTransaction showFrag = getSupportFragmentManager().beginTransaction();
-//                showFrag.replace(R.id.frameLayout, realTimeData);
-//                showFrag.commit();
-//                position = 0;
+
         } catch (Exception e) {
             Log.e(TAG, e.toString());
         }
@@ -595,7 +547,7 @@ public class MainActivity extends AppCompatActivity {
 
             // get characteristic when UUID matches RX/TX UUID
             characteristicTX = gattService.getCharacteristic(UartService.UUID_TX_CHAR_UUID);
-            if(characteristicTX != null){
+            if (characteristicTX != null) {
                 final int charaProp = characteristicTX.getProperties();
                 if ((charaProp | BluetoothGattCharacteristic.PROPERTY_READ) > 0) {
                     // If there is an active notification on a characteristic, clear
@@ -645,6 +597,7 @@ public class MainActivity extends AppCompatActivity {
         bindService(bindIntent, mServiceConnection, Context.BIND_AUTO_CREATE);
         LocalBroadcastManager.getInstance(this).registerReceiver(UARTStatusChangeReceiver, makeGattUpdateIntentFilter());
     }
+
     private static IntentFilter makeGattUpdateIntentFilter() {
         final IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(UartService.ACTION_GATT_CONNECTED);
@@ -654,74 +607,9 @@ public class MainActivity extends AppCompatActivity {
         intentFilter.addAction(UartService.DEVICE_DOES_NOT_SUPPORT_UART);
         return intentFilter;
     }
+
     private void showMessage(String msg) {
         Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
 
     }
-    //FANCY COULD BE USEFUL
-//    public void onBackPressed() {
-//        if (mState == UART_PROFILE_CONNECTED) {
-//            Intent startMain = new Intent(Intent.ACTION_MAIN);
-//            startMain.addCategory(Intent.CATEGORY_HOME);
-//            startMain.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-//            startActivity(startMain);
-//            //showMessage("nRFUART's running in background.\n             Disconnect to exit");
-//        }
-//        else {
-//            new AlertDialog.Builder(this)
-//                    .setIcon(android.R.drawable.ic_dialog_alert)
-//                    .setTitle(R.string.popup_title)
-//                    .setMessage(R.string.popup_message)
-//                    .setPositiveButton(R.string.popup_yes, new DialogInterface.OnClickListener()
-//                    {
-//                        @Override
-//                        public void onClick(DialogInterface dialog, int which) {
-//                            finish();
-//                        }
-//                    })
-//                    .setNegativeButton(R.string.popup_no, null)
-//                    .show();
-//        }
-//    }
-    //CONVERTING FROM BYTES TO DATA--->ALSO CHECK CHICKENJOHN
-//    int fromByteArray(byte[] bytes, int position) {
-//        if((bytes[position*3]>>7) == 1)
-//            return (bytes[0 + position*3]) << 16 | (bytes[1 + position*3] & 0xFF) << 8 | (bytes[2 + position*3] & 0xFF);
-//        else
-//            return (bytes[0 + position*3]) << 16 | (bytes[1 + position*3] & 0xFF) << 8 | (bytes[2 + position*3] & 0xFF);
-//    }
-//    float registerValueToVolt(int value){
-//        return (float) (((value/(Math.pow(2,23)-1))) * 2.5f);
-//    }
-//    private void broadcastUpdate(final String action) {
-//        final Intent intent = new Intent(action);
-//        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
-//    }
-//    //Configuration commands
-//    public void startCommand(){
-//        byte[] configuration = new byte[1];
-//        configuration[0] = 0;
-//        //mService.writeRXCharacteristic(configuration);
-//    }
-//
-//    public void stopCommand(){
-//        byte[] configuration = new byte[1];
-//        configuration[0] = 1;
-//        mService.writeRXCharacteristic(configuration);
-//    }
-//    public void setCommand(){
-//        stopCommand();
-//        android.os.SystemClock.sleep(50);
-//        byte[] configuration = new byte[3];
-//        configuration[0] = 2;
-//        for(int i=0; i <=22; i++){
-//            //configuration[1] = (byte) EcgConfig[i][0];
-//            //configuration[2] = (byte) EcgConfig[i][1];
-//            //mService.writeRXCharacteristic(configuration);
-//            android.os.SystemClock.sleep(50);
-//            android.os.SystemClock.sleep(50);
-//            android.os.SystemClock.sleep(50);
-//        }
-//        startCommand();
-//    }
 }
