@@ -224,11 +224,11 @@ public class UartService extends Service {
                 Log.d(TAG, "Heart rate format UINT16.");
             } else {
                 format = BluetoothGattCharacteristic.FORMAT_UINT8;
-                Log.d(TAG, "Heart rate format UINT8.");
+//                Log.d(TAG, "Heart rate format UINT8.");
             }
 
             final String ECGData = characteristic.getStringValue(0); //receive data in byte
-            Log.d(TAG, String.format("Received ECG data rate: %s", ECGData));
+//            Log.d(TAG, String.format("Received ECG data rate: %s", ECGData));
 
 
             intent.putExtra(EXTRA_DATA, String.valueOf(ECGData).trim());

@@ -30,7 +30,6 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.Spinner;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -49,11 +48,12 @@ public class MainActivity extends AppCompatActivity {
 
     private LineGraphSeries<DataPoint> mSeries1;
     //private Runnable mTimer1;
-    float samples[] = new float[100];
-    static float plotData[] = new float[400];
+    Double samples[] = new Double[100];
+    static Double plotData[] = new Double[400];
     public static int currentTimeSec = 0;
     public static int min = 0;
-    public static int max = 400;
+//    public static int max = 400;
+    public static int max = 40;
     public static int flag = 0;
     float in[] = new float[3];
     float fb[] = new float[2];
@@ -67,7 +67,6 @@ public class MainActivity extends AppCompatActivity {
     private static final int UART_PROFILE_DISCONNECTED = 21;
     private static final int STATE_OFF = 10;
     private ScanSettings settings;
-    private TextView mDataField;
 
     private Button disconnectButton;
     private Button saveButton;
@@ -86,7 +85,7 @@ public class MainActivity extends AppCompatActivity {
     private BluetoothGattCharacteristic characteristicTX;
     private BluetoothGattCharacteristic mNotifyCharacteristic;
 
-    float data[] = new float[100];
+    Double data[] = new Double[100];
     int temp_sample;
     int position = 0;
 
@@ -124,7 +123,6 @@ public class MainActivity extends AppCompatActivity {
         BLEListView.setAdapter(listAdapter);
         BLEListView.setDivider(null);
         connectButton = (Button) findViewById(R.id.connectButton);
-        mDataField = (TextView) findViewById(R.id.data_value);
 
         graph = (GraphView) findViewById(R.id.graph);
         graph.setVisibility(View.INVISIBLE);
@@ -353,7 +351,7 @@ public class MainActivity extends AppCompatActivity {
         public void onReceive(Context context, final Intent intent) {
             String action = intent.getAction();
 
-            Log.d(TAG, "before if");
+            //Log.d(TAG, "before if");
 
             //*********************//
             if (action.equals(UartService.ACTION_GATT_CONNECTED)) {
@@ -377,7 +375,6 @@ public class MainActivity extends AppCompatActivity {
                 //  public void run() {
                 Log.d(TAG, "UART_DISCONNECT_MSG");
                 mState = UART_PROFILE_DISCONNECTED;
-                mDataField.setText("");
 
                 //stopCommand();
                 //mService.disconnect();
@@ -395,7 +392,7 @@ public class MainActivity extends AppCompatActivity {
             }
             //*//*********************//*
             if (action.equals(UartService.ACTION_DATA_AVAILABLE)) {
-                Log.d(TAG, "data available");
+                //Log.d(TAG, "data available");
                 String dataString = intent.getStringExtra(UartService.EXTRA_DATA);
                 Log.d(TAG, dataString);
                 displayGraph(dataString);
@@ -436,27 +433,28 @@ public class MainActivity extends AppCompatActivity {
         graph.getGridLabelRenderer().setHorizontalAxisTitle("Time");
         graph.getGridLabelRenderer().setVerticalAxisTitle("mV");
         mSeries1.setColor(Color.BLUE);
-        Integer dataInt = !dataString.equals("") ? Integer.parseInt(dataString) : 0;
+        Double dataDouble = !dataString.equals("") ? Double.parseDouble(dataString) : 0;
 
         try {
-            data[position] = dataInt;
+            data[position] = dataDouble;
             position++;
-            Log.d(TAG, "" + position);
-            if (position % 100 == 0) {
-
-
-                for (int i = 0; i < 100; i++) {
+//            Log.d(TAG, "" + position);
+            if (position % 10 == 0) {
+                for (int i = 0; i <= 10; i++) {
                     samples[i] = data[i];
                 }
-                if (flag < 4) {
-                    for (int i = 0; i < 100; i++)
-                        plotData[flag * 100 + i] = samples[i];
-                } else {
-                    for (int i = 0; i < 300; i++)
-                        plotData[i] = plotData[i + 100];
+                EcgDataAnalysis(samples);
 
-                    for (int i = 0; i < 100; i++)
-                        plotData[i + 300] = samples[i];
+
+                if (flag < 4) {
+                    for (int i = 0; i <= 10; i++)
+                        plotData[flag * 10 + i] = samples[i];
+                } else {
+                    for (int i = 0; i <= 30; i++)
+                        plotData[i] = plotData[i + 10];
+
+                    for (int i = 0; i <= 10; i++)
+                        plotData[i + 30] = samples[i];
                 }
                 flag++;
 
@@ -467,48 +465,224 @@ public class MainActivity extends AppCompatActivity {
 
                 //Get UartService data and append them on the graph
                 if (flag == 1) {
-                    for (int i = 10; i < 100; i++)
-                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 249);//1st 100 samples - 1 sec
+                    for (int i = 0; i <= 10; i++)
+                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 10);//1st 100 samples - 1 sec
                 } else if (flag == 2) {
-                    for (int i = 10; i < 200; i++) {
-                        if (i % 100 == 0)
-                            i = i + 10;
-                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 499);//1st 200 samples - 2 secs
+                    for (int i = 10; i <= 20; i++) {
+                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 20);//1st 200 samples - 2 secs
                     }
                 } else if (flag == 3) {
-                    for (int i = 10; i < 300; i++) {
-                        if (i % 100 == 0)
-                            i = i + 10;
-                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 749);//1st 300 samples - 3 secs
+                    for (int i = 20; i <= 30; i++) {
+                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 30);//1st 300 samples - 3 secs
                     }
                 } else if (flag == 4) {
-                    for (int i = 10; i < 400; i++) {
-                        if (i % 100 == 0)
-                            i = i + 10;
-                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 999);// 1st 400 samples - 4 secs
+                    for (int i = 30; i <= 40; i++) {
+                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 40);// 1st 400 samples - 4 secs
                     }
                 } else {
-                    for (int i = 10; i < 400; i++) {
-                        if (i % 100 == 0)
-                            i = i + 10;
-                        mSeries1.appendData(new DataPoint(min + i, plotData[i]), false, 400);//refresh to graph the last 400 samples - 4 last secs
+                    for (int i = 30; i <= 40; i++) {
+                        mSeries1.appendData(new DataPoint(min + i, plotData[i]), false, 40);//refresh to graph the last 400 samples - 4 last secs
                     }
                 }
 
-                currentTimeSec = currentTimeSec + 100;
+                currentTimeSec = currentTimeSec + 10;
 
                 if (currentTimeSec == max) {
-                    min = min + 100;
-                    max = max + 100;
+                    min = min + 10;
+                    max = max + 10;
                 }
 
                 graph.addSeries(mSeries1);
                 position = 0;
+
+//            if (position % 100 == 0) {
+//                for (int i = 0; i < 100; i++) {
+//                    samples[i] = data[i];
+//                }
+//                if (flag < 4) {
+//                    for (int i = 0; i < 100; i++)
+//                        plotData[flag * 100 + i] = samples[i];
+//                } else {
+//                    for (int i = 0; i < 300; i++)
+//                        plotData[i] = plotData[i + 100];
+//
+//                    for (int i = 0; i < 100; i++)
+//                        plotData[i + 300] = samples[i];
+//                }
+//                flag++;
+//
+//                //dataFiltering();
+//                //createPlotArray(samples);
+//                //channelFilter(samples, in, fb);
+//
+//
+//                //Get UartService data and append them on the graph
+//                if (flag == 1) {
+//                    for (int i = 0; i < 100; i++)
+//                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 99);//1st 100 samples - 1 sec
+//                } else if (flag == 2) {
+//                    for (int i = 100; i < 200; i++) {
+//                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 199);//1st 200 samples - 2 secs
+//                    }
+//                } else if (flag == 3) {
+//                    for (int i = 200; i < 300; i++) {
+//                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 249);//1st 300 samples - 3 secs
+//                    }
+//                } else if (flag == 4) {
+//                    for (int i = 300; i < 400; i++) {
+//                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 399);// 1st 400 samples - 4 secs
+//                    }
+//                } else {
+//                    for (int i = 300; i < 400; i++) {
+//                        mSeries1.appendData(new DataPoint(min + i, plotData[i]), false, 399);//refresh to graph the last 400 samples - 4 last secs
+//                    }
+//                }
+//
+//                currentTimeSec = currentTimeSec + 100;
+//
+//                if (currentTimeSec == max) {
+//                    min = min + 100;
+//                    max = max + 100;
+//                }
+//
+//                graph.addSeries(mSeries1);
+//                    position = 0;
             }
+//            if (position % 100 == 0) {
+//
+//
+//                for (int i = 0; i < 100; i++) {
+//                    samples[i] = data[i];
+//                }
+//                if (flag < 4) {
+//                    for (int i = 0; i < 100; i++)
+//                        plotData[flag * 100 + i] = samples[i];
+//                } else {
+//                    for (int i = 0; i < 300; i++)
+//                        plotData[i] = plotData[i + 100];
+//
+//                    for (int i = 0; i < 100; i++)
+//                        plotData[i + 300] = samples[i];
+//                }
+//                flag++;
+//
+//                //dataFiltering();
+//                //createPlotArray(samples);
+//                //channelFilter(samples, in, fb);
+//
+//
+//                //Get UartService data and append them on the graph
+//                if (flag == 1) {
+//                    for (int i = 10; i < 100; i++)
+//                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 99);//1st 100 samples - 1 sec
+//                } else if (flag == 2) {
+//                    for (int i = 10; i < 200; i++) {
+//                        if (i % 100 == 0)
+//                            i = i + 10;
+//                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 199);//1st 200 samples - 2 secs
+//                    }
+//                } else if (flag == 3) {
+//                    for (int i = 10; i < 300; i++) {
+//                        if (i % 100 == 0)
+//                            i = i + 10;
+//                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 299);//1st 300 samples - 3 secs
+//                    }
+//                } else if (flag == 4) {
+//                    for (int i = 10; i < 400; i++) {
+//                        if (i % 100 == 0)
+//                            i = i + 10;
+//                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 399);// 1st 400 samples - 4 secs
+//                    }
+//                } else {
+//                    for (int i = 10; i < 400; i++) {
+//                        if (i % 100 == 0)
+//                            i = i + 10;
+//                        mSeries1.appendData(new DataPoint(min + i, plotData[i]), false, 399);//refresh to graph the last 400 samples - 4 last secs
+//                    }
+//                }
+//
+//                currentTimeSec = currentTimeSec + 100;
+//
+//                if (currentTimeSec == max) {
+//                    min = min + 100;
+//                    max = max + 100;
+//                }
+//
+//                graph.addSeries(mSeries1);
+//                position = 0;
+//            }
 
         } catch (Exception e) {
             Log.e(TAG, e.toString());
         }
+    }
+
+    private void EcgDataAnalysis(Double[] samples) {
+        double dataAvgValue = 0;
+        double lastAvgValue = 0;
+        double rPeakLocalMax = 0;
+        double rPeakMaxTemp = 0;
+        double prevRPeak = 0;
+        int locationLocal = 0;
+        int locationMax = 0;
+        int locationprev = 0;
+        double beatRate = 0;
+        double RRInterval = 0;
+        boolean firstRPeak = false;
+        Double dataTemp[] = new Double[11];
+        for (int i =0; i<=10;i++)
+            dataTemp[i] = samples[i];
+        Log.d(TAG, "dataTemp");
+        //average of closest 10 values
+        for (int i = 5; i<=6;i++){
+            dataTemp[i] = ((dataTemp[i-5] + dataTemp[i-4] + dataTemp[i-3] + dataTemp[i-2] + dataTemp[i-1] + dataTemp[i]
+                    + dataTemp[i+1] + dataTemp[i+1] + dataTemp[i+2] + dataTemp[i+3] + dataTemp[i+4])/10);
+        }
+        Log.d(TAG, "made it here");
+        rPeakLocalMax = dataTemp[0];
+        for (int i = 0; i<=10;i++){
+            dataAvgValue += dataTemp[i];
+            if (rPeakLocalMax<dataTemp[i]){
+                rPeakLocalMax = dataTemp[i];
+                locationLocal = i;
+            }
+        }
+        dataAvgValue = dataAvgValue/10;
+        if (firstRPeak){
+            if((Math.abs((rPeakMaxTemp-lastAvgValue) / (rPeakLocalMax-dataAvgValue) - 1) < 0.5) && ((locationLocal-locationMax)>60)){
+                rPeakMaxTemp = rPeakLocalMax;
+                locationMax = locationLocal;
+                lastAvgValue = dataAvgValue;
+                Log.d(TAG, Double.toString(rPeakMaxTemp));
+                if (firstRPeak){
+                    RRInterval = (locationMax - locationLocal) * 1/250; //250 samples/s = 250Hz
+                    beatRate = 60 / RRInterval;
+
+                    prevRPeak = rPeakMaxTemp;
+                    locationprev = locationMax;
+                } else {
+                    prevRPeak = rPeakMaxTemp;
+                    locationprev = locationMax;
+
+                }
+            }
+            //set text for heart rate and RR interval
+        }
+        else {
+            if (rPeakMaxTemp < rPeakLocalMax){
+                rPeakMaxTemp = rPeakLocalMax;
+                locationMax = locationLocal;
+                lastAvgValue = dataAvgValue;
+            }
+            if ((rPeakMaxTemp / Math.abs(dataAvgValue)) > 1.1){
+                Log.d(TAG, Double.toString(rPeakMaxTemp));
+                firstRPeak = true;
+                prevRPeak = rPeakMaxTemp;
+                locationprev = locationMax;
+            }
+        }
+
+
     }
 //}
 
