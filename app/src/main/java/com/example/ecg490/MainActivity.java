@@ -30,6 +30,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -48,15 +49,13 @@ public class MainActivity extends AppCompatActivity {
 
     private LineGraphSeries<DataPoint> mSeries1;
     //private Runnable mTimer1;
-    Double samples[] = new Double[100];
-    static Double plotData[] = new Double[400];
+    Double samples[] = new Double[250];
+    static Double plotData[] = new Double[1000];
     public static int currentTimeSec = 0;
     public static int min = 0;
-//    public static int max = 400;
     public static int max = 40;
+   //public static int max = 1000;
     public static int flag = 0;
-    float in[] = new float[3];
-    float fb[] = new float[2];
 
     private static final int REQUEST_SELECT_DEVICE = 1;
     private static final int REQUEST_ENABLE_BT = 2;
@@ -71,6 +70,8 @@ public class MainActivity extends AppCompatActivity {
     private Button disconnectButton;
     private Button saveButton;
     private Spinner mySpinner;
+    private TextView Interval;
+    private TextView heartRate;
 
     private int mState = UART_PROFILE_DISCONNECTED;
     private UartService mService = null;
@@ -85,8 +86,7 @@ public class MainActivity extends AppCompatActivity {
     private BluetoothGattCharacteristic characteristicTX;
     private BluetoothGattCharacteristic mNotifyCharacteristic;
 
-    Double data[] = new Double[100];
-    int temp_sample;
+    Double data[] = new Double[250];
     int position = 0;
 
 
@@ -127,12 +127,31 @@ public class MainActivity extends AppCompatActivity {
         graph = (GraphView) findViewById(R.id.graph);
         graph.setVisibility(View.INVISIBLE);
 
+        //enable scaling and scrolling
+
+        graph.getViewport().setScrollable(true);
+        graph.getViewport().setScrollableY(true);
+        graph.getViewport().setScalable(true);
+        graph.getViewport().setScalableY(true);
+
+        //other parameters
+        graph.setKeepScreenOn(true);
+        graph.getGridLabelRenderer().setHorizontalAxisTitle("Time");
+        graph.getGridLabelRenderer().setVerticalAxisTitle("mV");
+        graph.getGridLabelRenderer().setHighlightZeroLines(false);
+        graph.getGridLabelRenderer().setPadding(40);
+        graph.getGridLabelRenderer().setGridColor(Color.argb(255,242,189,205));
+
         disconnectButton = (Button) findViewById(R.id.disconnectButton);
         disconnectButton.setVisibility(View.INVISIBLE);
 
         saveButton = (Button) findViewById(R.id.saveButton);
         saveButton.setVisibility(View.INVISIBLE);
 
+        Interval = (TextView) findViewById(R.id.intervalTextView);
+        Interval.setVisibility(View.INVISIBLE);
+        heartRate = (TextView) findViewById(R.id.heartRateTextView);
+        heartRate.setVisibility(View.INVISIBLE);
         mySpinner = (Spinner) findViewById(R.id.spinner1);
 
         ArrayAdapter<String> myAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, getResources().getStringArray(R.array.leads));
@@ -179,11 +198,15 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 mService.disconnect();
+                graph.removeAllSeries();
                 graph.setVisibility(View.INVISIBLE);
                 disconnectButton.setVisibility(View.INVISIBLE);
                 saveButton.setVisibility(View.INVISIBLE);
                 mySpinner.setVisibility(View.INVISIBLE);
+                Interval.setVisibility(View.INVISIBLE);
+                heartRate.setVisibility(View.INVISIBLE);
                 connectButton.setVisibility(View.VISIBLE);
+
             }
         });
 
@@ -369,6 +392,11 @@ public class MainActivity extends AppCompatActivity {
                 saveButton.setVisibility(View.VISIBLE);
                 disconnectButton.setVisibility(View.VISIBLE);
                 mySpinner.setVisibility(View.VISIBLE);
+                Interval.setVisibility(View.VISIBLE);
+                heartRate.setVisibility(View.VISIBLE);
+                //display graph right away
+//                mSeries1 = new LineGraphSeries<>();
+//                graph.addSeries(mSeries1);
             }
             if (action.equals(UartService.ACTION_GATT_DISCONNECTED)) {
                 //runOnUiThread(new Runnable() {
@@ -412,6 +440,7 @@ public class MainActivity extends AppCompatActivity {
 //        GraphView graph = (GraphView) findViewById(R.id.graph);
         //graph.setVisibility(View.INVISIBLE);
         mSeries1 = new LineGraphSeries<>();
+        //graph.addSeries(mSeries1);
         //setting the graph bounds
         graph.getViewport().setXAxisBoundsManual(true);
         graph.getViewport().setMinX(min);
@@ -423,16 +452,8 @@ public class MainActivity extends AppCompatActivity {
 
         //enable scaling and scrolling
 
-        graph.getViewport().setScrollable(true);
-        graph.getViewport().setScrollableY(true);
-        graph.getViewport().setScalable(true);
-        graph.getViewport().setScalableY(true);
 
-        //other parameters
-        graph.setKeepScreenOn(true);
-        graph.getGridLabelRenderer().setHorizontalAxisTitle("Time");
-        graph.getGridLabelRenderer().setVerticalAxisTitle("mV");
-        mSeries1.setColor(Color.BLUE);
+        mSeries1.setColor(Color.BLACK);
         Double dataDouble = !dataString.equals("") ? Double.parseDouble(dataString) : 0;
 
         try {
@@ -465,22 +486,28 @@ public class MainActivity extends AppCompatActivity {
 
                 //Get UartService data and append them on the graph
                 if (flag == 1) {
-                    for (int i = 0; i <= 10; i++)
+                    for (int i = 1; i < 10; i++)
                         mSeries1.appendData(new DataPoint(i, plotData[i]), false, 10);//1st 100 samples - 1 sec
                 } else if (flag == 2) {
-                    for (int i = 10; i <= 20; i++) {
-                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 20);//1st 200 samples - 2 secs
+                    for (int i = 1; i < 20; i++) {
+                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 20);//1st 500 samples - 2 secs
                     }
                 } else if (flag == 3) {
-                    for (int i = 20; i <= 30; i++) {
-                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 30);//1st 300 samples - 3 secs
+                    for (int i = 1; i < 30; i++) {
+                        if (i % 10 == 0)
+                            i = i + 1;
+                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 30);//1st 750 samples - 3 secs
                     }
                 } else if (flag == 4) {
-                    for (int i = 30; i <= 40; i++) {
+                    for (int i = 1; i < 40; i++) {
+                        if (i % 10 == 0)
+                            i = i + 1;
                         mSeries1.appendData(new DataPoint(i, plotData[i]), false, 40);// 1st 400 samples - 4 secs
                     }
                 } else {
-                    for (int i = 30; i <= 40; i++) {
+                    for (int i = 1; i < 40; i++) {
+                        if (i % 10 == 0)
+                            i = i + 1;
                         mSeries1.appendData(new DataPoint(min + i, plotData[i]), false, 40);//refresh to graph the last 400 samples - 4 last secs
                     }
                 }
@@ -494,6 +521,7 @@ public class MainActivity extends AppCompatActivity {
 
                 graph.addSeries(mSeries1);
                 position = 0;
+            }
 
 //            if (position % 100 == 0) {
 //                for (int i = 0; i < 100; i++) {
@@ -503,11 +531,11 @@ public class MainActivity extends AppCompatActivity {
 //                    for (int i = 0; i < 100; i++)
 //                        plotData[flag * 100 + i] = samples[i];
 //                } else {
-//                    for (int i = 0; i < 300; i++)
+//                    for (int i = 0; i < 750; i++)
 //                        plotData[i] = plotData[i + 100];
 //
 //                    for (int i = 0; i < 100; i++)
-//                        plotData[i + 300] = samples[i];
+//                        plotData[i + 750] = samples[i];
 //                }
 //                flag++;
 //
@@ -521,19 +549,19 @@ public class MainActivity extends AppCompatActivity {
 //                    for (int i = 0; i < 100; i++)
 //                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 99);//1st 100 samples - 1 sec
 //                } else if (flag == 2) {
-//                    for (int i = 100; i < 200; i++) {
-//                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 199);//1st 200 samples - 2 secs
+//                    for (int i = 100; i < 500; i++) {
+//                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 199);//1st 500 samples - 2 secs
 //                    }
 //                } else if (flag == 3) {
-//                    for (int i = 200; i < 300; i++) {
-//                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 249);//1st 300 samples - 3 secs
+//                    for (int i = 500; i < 750; i++) {
+//                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 249);//1st 750 samples - 3 secs
 //                    }
 //                } else if (flag == 4) {
-//                    for (int i = 300; i < 400; i++) {
+//                    for (int i = 750; i < 400; i++) {
 //                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 399);// 1st 400 samples - 4 secs
 //                    }
 //                } else {
-//                    for (int i = 300; i < 400; i++) {
+//                    for (int i = 750; i < 400; i++) {
 //                        mSeries1.appendData(new DataPoint(min + i, plotData[i]), false, 399);//refresh to graph the last 400 samples - 4 last secs
 //                    }
 //                }
@@ -547,22 +575,22 @@ public class MainActivity extends AppCompatActivity {
 //
 //                graph.addSeries(mSeries1);
 //                    position = 0;
-            }
-//            if (position % 100 == 0) {
+//            }
+//            if (position % 250 == 0) {
 //
 //
-//                for (int i = 0; i < 100; i++) {
+//                for (int i = 0; i < 250; i++) {
 //                    samples[i] = data[i];
 //                }
 //                if (flag < 4) {
-//                    for (int i = 0; i < 100; i++)
-//                        plotData[flag * 100 + i] = samples[i];
+//                    for (int i = 0; i < 250; i++)
+//                        plotData[flag * 250 + i] = samples[i];
 //                } else {
-//                    for (int i = 0; i < 300; i++)
-//                        plotData[i] = plotData[i + 100];
+//                    for (int i = 0; i < 750; i++)
+//                        plotData[i] = plotData[i + 250];
 //
-//                    for (int i = 0; i < 100; i++)
-//                        plotData[i + 300] = samples[i];
+//                    for (int i = 0; i < 250; i++)
+//                        plotData[i + 750] = samples[i];
 //                }
 //                flag++;
 //
@@ -573,39 +601,39 @@ public class MainActivity extends AppCompatActivity {
 //
 //                //Get UartService data and append them on the graph
 //                if (flag == 1) {
-//                    for (int i = 10; i < 100; i++)
-//                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 99);//1st 100 samples - 1 sec
+//                    for (int i = 10; i < 250; i++)
+//                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 249);//1st 250 samples - 1 sec
 //                } else if (flag == 2) {
-//                    for (int i = 10; i < 200; i++) {
-//                        if (i % 100 == 0)
+//                    for (int i = 10; i < 500; i++) {
+//                        if (i % 250 == 0)
 //                            i = i + 10;
-//                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 199);//1st 200 samples - 2 secs
+//                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 499);//1st 500 samples - 2 secs
 //                    }
 //                } else if (flag == 3) {
-//                    for (int i = 10; i < 300; i++) {
-//                        if (i % 100 == 0)
+//                    for (int i = 10; i < 750; i++) {
+//                        if (i % 250 == 0)
 //                            i = i + 10;
-//                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 299);//1st 300 samples - 3 secs
+//                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 749);//1st 750 samples - 3 secs
 //                    }
 //                } else if (flag == 4) {
-//                    for (int i = 10; i < 400; i++) {
-//                        if (i % 100 == 0)
+//                    for (int i = 10; i < 1000; i++) {
+//                        if (i % 250 == 0)
 //                            i = i + 10;
-//                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 399);// 1st 400 samples - 4 secs
+//                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 999);// 1st 1000 samples - 4 secs
 //                    }
 //                } else {
-//                    for (int i = 10; i < 400; i++) {
-//                        if (i % 100 == 0)
+//                    for (int i = 10; i < 1000; i++) {
+//                        if (i % 250 == 0)
 //                            i = i + 10;
-//                        mSeries1.appendData(new DataPoint(min + i, plotData[i]), false, 399);//refresh to graph the last 400 samples - 4 last secs
+//                        mSeries1.appendData(new DataPoint(min + i, plotData[i]), false, 999);//refresh to graph the last 1000 samples - 4 last secs
 //                    }
 //                }
 //
-//                currentTimeSec = currentTimeSec + 100;
+//                currentTimeSec = currentTimeSec + 250;
 //
 //                if (currentTimeSec == max) {
-//                    min = min + 100;
-//                    max = max + 100;
+//                    min = min + 250;
+//                    max = max + 250;
 //                }
 //
 //                graph.addSeries(mSeries1);
@@ -667,6 +695,8 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
             //set text for heart rate and RR interval
+            Interval.setText("RR Interval: " + RRInterval);
+            heartRate.setText("Heart Rate: " + beatRate);
         }
         else {
             if (rPeakMaxTemp < rPeakLocalMax){
