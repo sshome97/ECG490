@@ -47,14 +47,14 @@ public class UartService extends Service {
     public final static String EXTRA_DATA = "com.example.ecg490.EXTRA_DATA";
     public final static String DEVICE_DOES_NOT_SUPPORT_UART = "com.example.ecg490.DEVICE_DOES_NOT_SUPPORT_UART";
 
-    public final static UUID UUID_TX_CHAR_UUID =
-            UUID.fromString(SampleGattAttributes.TX_CHAR_UUID);
+    public final static UUID UUID_RX_CHAR_UUID =
+            UUID.fromString(SampleGattAttributes.RX_CHAR_UUID);
 
     //
 //    public static final UUID CCCD = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
 //   public static final UUID RX_SERVICE_UUID = UUID.fromString("59462F12-9543-9999-12C8-58B459A2712D");
 //    public static final UUID RX_CHAR_UUID = UUID.fromString("5C3A659E-897E-45E1-B016-007107C96DF6");
-//    public static final UUID TX_CHAR_UUID = UUID.fromString("5C3A659E-897E-45E1-B016-007107C96DF7");
+//    public static final UUID RX_CHAR_UUID = UUID.fromString("5C3A659E-897E-45E1-B016-007107C96DF7");
     public boolean initialize() {
         if (btManager == null) {
             btManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
@@ -216,7 +216,7 @@ public class UartService extends Service {
         final Intent intent = new Intent(action);
 
         // This is handling for the notification on TX Character of NUS service
-        if (UUID_TX_CHAR_UUID.equals(characteristic.getUuid())) {
+        if (UUID_RX_CHAR_UUID.equals(characteristic.getUuid())) {
             int flag = characteristic.getProperties();
             int format = -1;
             if ((flag & 0x01) != 0) {
@@ -226,12 +226,10 @@ public class UartService extends Service {
                 format = BluetoothGattCharacteristic.FORMAT_UINT8;
 //                Log.d(TAG, "Heart rate format UINT8.");
             }
-
             final String ECGData = characteristic.getStringValue(0); //receive data in byte
+            Log.d(TAG, ECGData);
 //            Log.d(TAG, String.format("Received ECG data rate: %s", ECGData));
-
-
-            intent.putExtra(EXTRA_DATA, String.valueOf(ECGData).trim());
+            intent.putExtra(EXTRA_DATA, ECGData);
             LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
         }
     }
@@ -274,7 +272,7 @@ public class UartService extends Service {
         mGatt.setCharacteristicNotification(characteristic, enabled);
 
         // This is specific to Heart Rate Measurement.
-        if (UUID_TX_CHAR_UUID.equals(characteristic.getUuid())) {
+        if (UUID_RX_CHAR_UUID.equals(characteristic.getUuid())) {
             BluetoothGattDescriptor descriptor = characteristic.getDescriptor(
                     UUID.fromString(SampleGattAttributes.CCCD));
             descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);

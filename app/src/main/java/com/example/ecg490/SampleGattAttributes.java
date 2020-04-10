@@ -17,7 +17,6 @@
 package com.example.ecg490;
 
 import java.util.HashMap;
-import java.util.UUID;
 
 /**
  * This class includes a small subset of standard GATT attributes for demonstration purposes.
@@ -29,7 +28,7 @@ public class SampleGattAttributes {
 
 
     private static HashMap<String, String> attributes = new HashMap();
-    public static String TX_CHAR_UUID = "6e400003-b5a3-f393-e0a9-e50e24dcca9e";
+    public static String RX_CHAR_UUID = "6e400003-b5a3-f393-e0a9-e50e24dcca9e";
     public static String CCCD = "00002902-0000-1000-8000-00805f9b34fb";
 
     static {
@@ -37,7 +36,7 @@ public class SampleGattAttributes {
         attributes.put("6e400001-b5a3-f393-e0a9-e50e24dcca9e", "W2ECG");
         attributes.put("0000180a-0000-1000-8000-00805f9b34fb", "Device Information Service");
         // Sample Characteristics.
-        attributes.put(TX_CHAR_UUID, "W2ECG Data");
+        attributes.put(RX_CHAR_UUID, "W2ECG Data");
         //attributes.put("00002a29-0000-1000-8000-00805f9b34fb", "Manufacturer Name String");
     }
 
