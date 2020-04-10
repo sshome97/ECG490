@@ -1,11 +1,11 @@
 <resources>
     <string name="app_name">W^2 ECG System</string>
     <string-array name="leads">
-    <item>Lead1</item>
-    <item>Lead2</item>
-    <item>Lead3</item>
-    <item>Lead4</item>
-    <item>Lead5</item>
+    <item>Lead II</item>
+    <item>Lead I</item>
+    <item>Lead III</item>
+    <item>Lead V1</item>
+    <item>Lead V2</item>
     </string-array>
     <string name="device">Device:</string>
     <string name="no_device">&lt;Select a device&gt;</string>

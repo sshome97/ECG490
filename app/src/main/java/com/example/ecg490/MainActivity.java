@@ -3,6 +3,8 @@ package com.example.ecg490;
 import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGattCharacteristic;
@@ -26,6 +28,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
@@ -34,6 +37,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.NotificationCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import com.google.firebase.auth.FirebaseAuth;
@@ -42,6 +46,7 @@ import com.jjoe64.graphview.series.DataPoint;
 import com.jjoe64.graphview.series.LineGraphSeries;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
@@ -83,12 +88,34 @@ public class MainActivity extends AppCompatActivity {
     private GraphView graph;
     private final String LIST_NAME = "NAME";
     private final String LIST_UUID = "UUID";
-    private BluetoothGattCharacteristic characteristicTX;
+    private BluetoothGattCharacteristic characteristicRX;
     private BluetoothGattCharacteristic mNotifyCharacteristic;
 
-    Double data[] = new Double[250];
+    private Double[] lead1 = new Double[250];
+    private Double[] lead2 = new Double[250];
+    private Double[] lead3 = new Double[250];
+    private Double[] leadV1 = new Double[250];
+    private Double[] leadV2 = new Double[250];
+    //Double data[] = new Double[250];
     int position = 0;
+    int whichLead = 0;
 
+    double dataAvgValue = 0;
+    double lastAvgValue = 0;
+    double rPeakLocalMax = 0;
+    double rPeakMaxTemp = 0;
+    double prevRPeak = 0;
+    int locationLocal = 0;
+    int locationMax = 0;
+    int locationPrev = 0;
+    double beatRate = 0;
+    double RRInterval = 0;
+    double prevRRInterval = 0;
+    boolean firstRPeak = false;
+
+    double RpeakV2 = 0;
+    double dataAvgValueV2 = 0;
+    double SpeakV2 = 0;
 
     @Override
     public void onBackPressed() {
@@ -206,6 +233,39 @@ public class MainActivity extends AppCompatActivity {
                 Interval.setVisibility(View.INVISIBLE);
                 heartRate.setVisibility(View.INVISIBLE);
                 connectButton.setVisibility(View.VISIBLE);
+
+            }
+        });
+        mySpinner.setSelection(0,false);
+        mySpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                switch (position){
+                    case 0:
+                        graph.removeAllSeries();
+                        whichLead = 0;
+                        break;
+                    case 1:
+                        graph.removeAllSeries();
+                        whichLead = 1;
+                        break;
+                    case 2:
+                        graph.removeAllSeries();
+                        whichLead = 2;
+                        break;
+                    case 3:
+                        graph.removeAllSeries();
+                        whichLead = 3;
+                        break;
+                    case 4:
+                        graph.removeAllSeries();
+                        whichLead = 4;
+                        break;
+                }
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
 
             }
         });
@@ -374,19 +434,12 @@ public class MainActivity extends AppCompatActivity {
         public void onReceive(Context context, final Intent intent) {
             String action = intent.getAction();
 
-            //Log.d(TAG, "before if");
-
-            //*********************//
             if (action.equals(UartService.ACTION_GATT_CONNECTED)) {
-                /*runOnUiThread(new Runnable() {
-                    public void run() {*/
                 Log.d(TAG, "UART_CONNECT_MSG");
                 Toast.makeText(MainActivity.this, "Successfully Connected", Toast.LENGTH_SHORT).show();
 
-
                 mState = UART_PROFILE_CONNECTED;
-                //   }
-                // });
+
                 connectButton.setVisibility(View.INVISIBLE);
                 graph.setVisibility(View.VISIBLE);
                 saveButton.setVisibility(View.VISIBLE);
@@ -394,44 +447,32 @@ public class MainActivity extends AppCompatActivity {
                 mySpinner.setVisibility(View.VISIBLE);
                 Interval.setVisibility(View.VISIBLE);
                 heartRate.setVisibility(View.VISIBLE);
-                //display graph right away
-//                mSeries1 = new LineGraphSeries<>();
-//                graph.addSeries(mSeries1);
             }
             if (action.equals(UartService.ACTION_GATT_DISCONNECTED)) {
-                //runOnUiThread(new Runnable() {
-                //  public void run() {
+
                 Log.d(TAG, "UART_DISCONNECT_MSG");
                 mState = UART_PROFILE_DISCONNECTED;
 
-                //stopCommand();
-                //mService.disconnect();
                 mService.close();
-                // }
-                //});
             }
             if (action.equals(UartService.ACTION_GATT_SERVICES_DISCOVERED)) {
-                //startCommand();
-                // setCommand();
-                Log.d(TAG, "call displaygatt");
-                displayGattServices(mService.getSupportedGattServices());
-                //mService.enableTXNotification();
 
+                Log.d(TAG, "call displaygatt");
+                findGattServices(mService.getSupportedGattServices());
             }
-            //*//*********************//*
+
             if (action.equals(UartService.ACTION_DATA_AVAILABLE)) {
-                //Log.d(TAG, "data available");
+
                 String dataString = intent.getStringExtra(UartService.EXTRA_DATA);
-                Log.d(TAG, dataString);
                 displayGraph(dataString);
-                if (action.equals(UartService.DEVICE_DOES_NOT_SUPPORT_UART)) {
+                }
+            if (action.equals(UartService.DEVICE_DOES_NOT_SUPPORT_UART)) {
                     showMessage("Device doesn't support UART. Disconnecting");
                     //stopCommand();
                     mService.disconnect();
                 }
             }
-        }
-    };
+        };
 
     private void displayGraph(String dataString) {
         //GraphView graph = (GraphView) findViewById(R.id.graph);
@@ -454,74 +495,120 @@ public class MainActivity extends AppCompatActivity {
 
 
         mSeries1.setColor(Color.BLACK);
-        Double dataDouble = !dataString.equals("") ? Double.parseDouble(dataString) : 0;
 
-        try {
-            data[position] = dataDouble;
-            position++;
-//            Log.d(TAG, "" + position);
-            if (position % 10 == 0) {
-                for (int i = 0; i <= 10; i++) {
-                    samples[i] = data[i];
+
+        //Double dataDouble = !dataString.equals("") ? Double.parseDouble(dataString) : 0;
+            String[] dataStringArray = dataString.split(" ");
+            //make sure we receive full frame of data
+            if (dataStringArray.length == 5) {
+                double[] dataDoubleArray = new double[dataStringArray.length];
+                for (int i = 0; i < dataDoubleArray.length; i++) {
+                    dataDoubleArray[i] = Double.parseDouble(dataStringArray[i]);
                 }
-                EcgDataAnalysis(samples);
+                lead1[position] = dataDoubleArray[0];
+                lead2[position] = dataDoubleArray[1];
+                lead3[position] = dataDoubleArray[2];
+                leadV1[position] = dataDoubleArray[3];
+                leadV2[position] = dataDoubleArray[4];
+                position++;
+                try {
+                    if (position % 10 == 0) {
+
+                        //only analysze lead2, maybe implement ways of analyzing others leads;
+                        EcgDataAnalysis(lead2);
+                        EcgDataAnalysis2(leadV1);
+
+                        switch (whichLead){
+                            case 0:
+                                samples = Arrays.copyOf(lead2,lead2.length);
+                                break;
+                            case 1:
+                                samples = Arrays.copyOf(lead1,lead1.length);
+                                break;
+                            case 2:
+                                samples = Arrays.copyOf(lead3,lead3.length);
+                                break;
+                            case 3:
+                                samples = Arrays.copyOf(leadV1,leadV1.length);
+                                break;
+                            case 4:
+                                samples = Arrays.copyOf(leadV2,leadV2.length);
+                                break;
 
 
-                if (flag < 4) {
-                    for (int i = 0; i <= 10; i++)
-                        plotData[flag * 10 + i] = samples[i];
-                } else {
-                    for (int i = 0; i <= 30; i++)
-                        plotData[i] = plotData[i + 10];
 
-                    for (int i = 0; i <= 10; i++)
-                        plotData[i + 30] = samples[i];
+                        }
+
+//                        for (int i = 0; i < 10; i++) {
+//                            samples[i] = data[i];
+//                        }
+//                EcgDataAnalysis(samples);
+
+
+                        if (flag < 4) {
+                            for (int i = 0; i < 10; i++)
+                                plotData[flag * 10 + i] = samples[i];
+                        } else {
+                            for (int i = 0; i < 30; i++)
+                                plotData[i] = plotData[i + 10];
+
+                            for (int i = 0; i < 10; i++)
+                                plotData[i + 30] = samples[i];
+                        }
+                        flag++;
+
+                        //dataFiltering();
+                        //createPlotArray(samples);
+                        //channelFilter(samples, in, fb);
+
+
+                        //Get UartService data and append them on the graph
+                        if (flag == 1) {
+                            for (int i = 1; i < 10; i++) {
+                                mSeries1.appendData(new DataPoint(i, plotData[i]), false, 10);
+                            }
+//1st 100 samples - 1 sec
+                        } else if (flag == 2) {
+                            for (int i = 1; i < 20; i++) {
+                                mSeries1.appendData(new DataPoint(i, plotData[i]), false, 20);//1st 500 samples - 2 secs
+                            }
+                        } else if (flag == 3) {
+                            for (int i = 1; i < 30; i++) {
+                                if (i % 10 == 0)
+                                    i = i + 1;
+                                mSeries1.appendData(new DataPoint(i, plotData[i]), false, 30);//1st 750 samples - 3 secs
+                            }
+                        } else if (flag == 4) {
+                            for (int i = 1; i < 40; i++) {
+                                if (i % 10 == 0)
+                                    i = i + 1;
+                                mSeries1.appendData(new DataPoint(i, plotData[i]), false, 40);// 1st 400 samples - 4 secs
+                            }
+                        } else {
+                            for (int i = 1; i < 40; i++) {
+                                if (i % 10 == 0)
+                                    i = i + 1;
+                                mSeries1.appendData(new DataPoint(min + i, plotData[i]), false, 40);//refresh to graph the last 400 samples - 4 last secs
+                            }
+                        }
+
+                        currentTimeSec = currentTimeSec + 10;
+
+                        if (currentTimeSec == max) {
+                            min = min + 10;
+                            max = max + 10;
+                        }
+
+                        graph.addSeries(mSeries1);
+                        position = 0;
+
+                    }
+
+                } catch (Exception e) {
+                    Log.e(TAG, e.toString());
                 }
-                flag++;
 
-                //dataFiltering();
-                //createPlotArray(samples);
-                //channelFilter(samples, in, fb);
-
-
-                //Get UartService data and append them on the graph
-                if (flag == 1) {
-                    for (int i = 1; i < 10; i++)
-                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 10);//1st 100 samples - 1 sec
-                } else if (flag == 2) {
-                    for (int i = 1; i < 20; i++) {
-                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 20);//1st 500 samples - 2 secs
-                    }
-                } else if (flag == 3) {
-                    for (int i = 1; i < 30; i++) {
-                        if (i % 10 == 0)
-                            i = i + 1;
-                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 30);//1st 750 samples - 3 secs
-                    }
-                } else if (flag == 4) {
-                    for (int i = 1; i < 40; i++) {
-                        if (i % 10 == 0)
-                            i = i + 1;
-                        mSeries1.appendData(new DataPoint(i, plotData[i]), false, 40);// 1st 400 samples - 4 secs
-                    }
-                } else {
-                    for (int i = 1; i < 40; i++) {
-                        if (i % 10 == 0)
-                            i = i + 1;
-                        mSeries1.appendData(new DataPoint(min + i, plotData[i]), false, 40);//refresh to graph the last 400 samples - 4 last secs
-                    }
-                }
-
-                currentTimeSec = currentTimeSec + 10;
-
-                if (currentTimeSec == max) {
-                    min = min + 10;
-                    max = max + 10;
-                }
-
-                graph.addSeries(mSeries1);
-                position = 0;
-            }
+        }
 
 //            if (position % 100 == 0) {
 //                for (int i = 0; i < 100; i++) {
@@ -639,36 +726,25 @@ public class MainActivity extends AppCompatActivity {
 //                graph.addSeries(mSeries1);
 //                position = 0;
 //            }
+    //}
 
-        } catch (Exception e) {
-            Log.e(TAG, e.toString());
-        }
     }
 
+
     private void EcgDataAnalysis(Double[] samples) {
-        double dataAvgValue = 0;
-        double lastAvgValue = 0;
-        double rPeakLocalMax = 0;
-        double rPeakMaxTemp = 0;
-        double prevRPeak = 0;
-        int locationLocal = 0;
-        int locationMax = 0;
-        int locationprev = 0;
-        double beatRate = 0;
-        double RRInterval = 0;
-        boolean firstRPeak = false;
-        Double dataTemp[] = new Double[11];
-        for (int i =0; i<=10;i++)
+        
+        Double dataTemp[] = new Double[10];
+        for (int i =0; i<10;i++)
             dataTemp[i] = samples[i];
         Log.d(TAG, "dataTemp");
         //average of closest 10 values
-        for (int i = 5; i<=6;i++){
-            dataTemp[i] = ((dataTemp[i-5] + dataTemp[i-4] + dataTemp[i-3] + dataTemp[i-2] + dataTemp[i-1] + dataTemp[i]
-                    + dataTemp[i+1] + dataTemp[i+1] + dataTemp[i+2] + dataTemp[i+3] + dataTemp[i+4])/10);
-        }
+//        for (int i = 5; i<6;i++){
+//            dataTemp[i] = ((dataTemp[i-5] + dataTemp[i-4] + dataTemp[i-3] + dataTemp[i-2] + dataTemp[i-1] + dataTemp[i]
+//                    + dataTemp[i+1] + dataTemp[i+1] + dataTemp[i+2] + dataTemp[i+3] + dataTemp[i+4])/10);
+//        }
         Log.d(TAG, "made it here");
         rPeakLocalMax = dataTemp[0];
-        for (int i = 0; i<=10;i++){
+        for (int i = 0; i<10;i++){
             dataAvgValue += dataTemp[i];
             if (rPeakLocalMax<dataTemp[i]){
                 rPeakLocalMax = dataTemp[i];
@@ -687,16 +763,21 @@ public class MainActivity extends AppCompatActivity {
                     beatRate = 60 / RRInterval;
 
                     prevRPeak = rPeakMaxTemp;
-                    locationprev = locationMax;
+                    locationPrev = locationMax;
                 } else {
                     prevRPeak = rPeakMaxTemp;
-                    locationprev = locationMax;
+                    locationPrev = locationMax;
 
                 }
             }
             //set text for heart rate and RR interval
             Interval.setText("RR Interval: " + RRInterval);
             heartRate.setText("Heart Rate: " + beatRate);
+            if (Math.abs(RRInterval - prevRRInterval) > 0.12){
+                addNotification(2);
+
+            }
+            prevRRInterval = RRInterval;
         }
         else {
             if (rPeakMaxTemp < rPeakLocalMax){
@@ -708,22 +789,59 @@ public class MainActivity extends AppCompatActivity {
                 Log.d(TAG, Double.toString(rPeakMaxTemp));
                 firstRPeak = true;
                 prevRPeak = rPeakMaxTemp;
-                locationprev = locationMax;
+                locationPrev = locationMax;
             }
         }
 
 
     }
+    private void EcgDataAnalysis2(Double[] samples) {
+        RpeakV2 = samples[0];
+        SpeakV2 = samples[0];
+
+        for (int i = 0; i<10;i++){
+            dataAvgValueV2 += samples[i];
+            if (RpeakV2<samples[i]){
+                RpeakV2 = samples[i];
+            }
+            if (SpeakV2>samples[i]){
+                SpeakV2 = samples[i];
+            }
+        }
+      if ((RpeakV2 > 0.25) || (RpeakV2 > Math.abs(SpeakV2))){
+            addNotification(0);
+        }
+    }
+
+    private void addNotification(int x) {
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this)
+                .setSmallIcon(R.mipmap.ic_launcher_round)
+                .setContentTitle("W^2 ECG System Alert");
+        if (x == 0) {
+
+            builder.setContentText("An abnormality has been found in lead V1: R peak is greater than S peak.");
+        }
+        else if (x == 1){
+            builder.setContentText("An abnormality has been found in lead 2: R peak exceeds 1 mV.");
+        }
+        else if (x == 1){
+            builder.setContentText("An abnormality has been found in lead 2: RR intervals greater than 0.12 seconds apart.");
+        }
+        Intent notificationIntent = new Intent(this, MainActivity.class);
+        PendingIntent contentIntent = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        builder.setContentIntent(contentIntent);
+
+        NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        manager.notify(0, builder.build());
+    }
 //}
 
 
-    private void displayGattServices(List<BluetoothGattService> gattServices) {
-
+    private void findGattServices(List<BluetoothGattService> gattServices) {
         if (gattServices == null) return;
         String uuid = null;
         String unknownServiceString = getResources().getString(R.string.unknown_service);
         ArrayList<HashMap<String, String>> gattServiceData = new ArrayList<HashMap<String, String>>();
-
 
         // Loops through available GATT Services.
         for (BluetoothGattService gattService : gattServices) {
@@ -731,44 +849,36 @@ public class MainActivity extends AppCompatActivity {
             uuid = gattService.getUuid().toString();
             currentServiceData.put(
                     LIST_NAME, SampleGattAttributes.lookup(uuid, unknownServiceString));
-            Log.d(TAG, "right above");
-            // If the service exists for HM 10 Serial, say so.
             if (SampleGattAttributes.lookup(uuid, unknownServiceString) == "W2ECG") {
-                //isSerial.setText("Yes, serial :-)");
                 Log.d(TAG, "ECG discovered");
             } else {
-                //isSerial.setText("No, serial :-(");
-                Log.d(TAG, "Nathan bruv");
             }
             currentServiceData.put(LIST_UUID, uuid);
             gattServiceData.add(currentServiceData);
-
             // get characteristic when UUID matches RX/TX UUID
-            characteristicTX = gattService.getCharacteristic(UartService.UUID_TX_CHAR_UUID);
-            if (characteristicTX != null) {
-                final int charaProp = characteristicTX.getProperties();
+            characteristicRX = gattService.getCharacteristic(UartService.UUID_RX_CHAR_UUID);
+            if (characteristicRX != null) {
+                final int charaProp = characteristicRX.getProperties();
                 if ((charaProp | BluetoothGattCharacteristic.PROPERTY_READ) > 0) {
-                    // If there is an active notification on a characteristic, clear
-                    // it first so it doesn't update the data field on the user interface.
                     if (mNotifyCharacteristic != null) {
                         mService.setCharacteristicNotification(
                                 mNotifyCharacteristic, false);
                         mNotifyCharacteristic = null;
                     }
-                    mService.readCharacteristic(characteristicTX);
+                    mService.readCharacteristic(characteristicRX);
                 }
                 if ((charaProp | BluetoothGattCharacteristic.PROPERTY_NOTIFY) > 0) {
-                    mNotifyCharacteristic = characteristicTX;
+                    mNotifyCharacteristic = characteristicRX;
                     mService.setCharacteristicNotification(
-                            characteristicTX, true);
+                            characteristicRX, true);
                 }
             }
 
 //            // SEcond characteristic
 //            // get characteristic when UUID matches RX/TX UUID
-//            characteristicTX2 = gattService.getCharacteristic(UartService.UUID_TX_CHAR_UUID);
-//            if(characteristicTX2 != null){
-//                final int charaProp = characteristicTX2.getProperties();
+//            characteristicRX2 = gattService.getCharacteristic(UartService.UUID_RX_CHAR_UUID);
+//            if(characteristicRX2 != null){
+//                final int charaProp = characteristicRX2.getProperties();
 //                if ((charaProp | BluetoothGattCharacteristic.PROPERTY_READ) > 0) {
 //                    // If there is an active notification on a characteristic, clear
 //                    // it first so it doesn't update the data field on the user interface.
@@ -777,12 +887,12 @@ public class MainActivity extends AppCompatActivity {
 //                                mNotifyCharacteristic, false);
 //                        mNotifyCharacteristic = null;
 //                    }
-//                    mService.readCharacteristic(characteristicTX);
+//                    mService.readCharacteristic(characteristicRX);
 //                }
 //                if ((charaProp | BluetoothGattCharacteristic.PROPERTY_NOTIFY) > 0) {
-//                    mNotifyCharacteristic = characteristicTX;
+//                    mNotifyCharacteristic = characteristicRX;
 //                    mService.setCharacteristicNotification(
-//                            characteristicTX, true);
+//                            characteristicRX, true);
 //                }
 //            }
 
