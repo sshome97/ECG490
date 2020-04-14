@@ -1,7 +1,5 @@
 package com.example.ecg490;
 
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -11,7 +9,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
-import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
@@ -19,13 +16,14 @@ import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.Window;
 import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.appcompat.app.AppCompatActivity;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -61,7 +59,6 @@ public class DeviceListActivity extends AppCompatActivity {
             finish();
         }
 
-        // Initializes a Bluetooth adapter.  For API level 18 and above, get a reference to
         // BluetoothAdapter through BluetoothManager.
         final BluetoothManager bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
         btAdapter = bluetoothManager.getAdapter();
@@ -252,20 +249,14 @@ public class DeviceListActivity extends AppCompatActivity {
             tvadd.setText(device.getAddress());
             if (device.getBondState() == BluetoothDevice.BOND_BONDED) {
                 Log.i(TAG, "device::"+device.getName());
-                //tvname.setTextColor(Color.WHITE);
-                //tvadd.setTextColor(Color.WHITE);
-                //tvpaired.setTextColor(Color.GRAY);
                 tvpaired.setVisibility(View.VISIBLE);
                 tvpaired.setText(R.string.paired);
                 tvrssi.setVisibility(View.VISIBLE);
-                //tvrssi.setTextColor(Color.WHITE);
 
             } else {
-                //tvname.setTextColor(Color.WHITE);
-                //tvadd.setTextColor(Color.WHITE);
+
                 tvpaired.setVisibility(View.GONE);
                 tvrssi.setVisibility(View.VISIBLE);
-                //tvrssi.setTextColor(Color.WHITE);
             }
             return vg;
         }

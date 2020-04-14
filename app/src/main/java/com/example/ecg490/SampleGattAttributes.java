@@ -18,14 +18,8 @@ package com.example.ecg490;
 
 import java.util.HashMap;
 
-/**
- * This class includes a small subset of standard GATT attributes for demonstration purposes.
- */
+
 public class SampleGattAttributes {
-
-    //public static final UUID RX_SERVICE_UUID = UUID.fromString("59462F12-9543-9999-12C8-58B459A2712D");
-    //public static final UUID RX_CHAR_UUID = UUID.fromString("5C3A659E-897E-45E1-B016-007107C96DF6");
-
 
     private static HashMap<String, String> attributes = new HashMap();
     public static String RX_CHAR_UUID = "6e400003-b5a3-f393-e0a9-e50e24dcca9e";
