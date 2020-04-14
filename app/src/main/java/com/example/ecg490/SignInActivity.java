@@ -1,9 +1,6 @@
 package com.example.ecg490;
 
-import androidx.appcompat.app.AppCompatActivity;
 import android.content.Intent;
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -11,13 +8,14 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-
-import android.os.Bundle;
 
 public class SignInActivity extends AppCompatActivity {
 
@@ -38,20 +36,20 @@ public class SignInActivity extends AppCompatActivity {
         btnSignIn = findViewById(R.id.button2);
         tvSignUp = findViewById(R.id.textView);
 
-//        mAuthStateListener = new FirebaseAuth.AuthStateListener() {
-//            @Override
-//            public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
-//                FirebaseUser mFirebaseUser = mFirebaseAuth.getCurrentUser();
-//                if( mFirebaseUser != null ){
-//                    Toast.makeText(SignInActivity.this,"You are logged in",Toast.LENGTH_SHORT).show();
-//                    Intent i = new Intent(SignInActivity.this, MainActivity.class);
-//                    startActivity(i);
-//                }
-//                else{
-//                    Toast.makeText(SignInActivity.this,"Please Login",Toast.LENGTH_SHORT).show();
-//                }
-//            }
-//        };
+        mAuthStateListener = new FirebaseAuth.AuthStateListener() {
+            @Override
+            public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
+                FirebaseUser mFirebaseUser = mFirebaseAuth.getCurrentUser();
+                if( mFirebaseUser != null ){
+                    Toast.makeText(SignInActivity.this,"You are logged in",Toast.LENGTH_SHORT).show();
+                    Intent i = new Intent(SignInActivity.this, MainActivity.class);
+                    startActivity(i);
+                }
+                else{
+                    Toast.makeText(SignInActivity.this,"Please Login",Toast.LENGTH_SHORT).show();
+                }
+            }
+        };
 
         btnSignIn.setOnClickListener(new View.OnClickListener() {
             @Override

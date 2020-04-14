@@ -50,11 +50,7 @@ public class UartService extends Service {
     public final static UUID UUID_RX_CHAR_UUID =
             UUID.fromString(SampleGattAttributes.RX_CHAR_UUID);
 
-    //
-//    public static final UUID CCCD = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
-//   public static final UUID RX_SERVICE_UUID = UUID.fromString("59462F12-9543-9999-12C8-58B459A2712D");
-//    public static final UUID RX_CHAR_UUID = UUID.fromString("5C3A659E-897E-45E1-B016-007107C96DF6");
-//    public static final UUID RX_CHAR_UUID = UUID.fromString("5C3A659E-897E-45E1-B016-007107C96DF7");
+
     public boolean initialize() {
         if (btManager == null) {
             btManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
@@ -68,14 +64,13 @@ public class UartService extends Service {
             Log.e(TAG, "Unable to obtain a BluetoothAdapter.");
             return false;
         }
-//sames remember
+
         btScanner = btAdapter.getBluetoothLeScanner();
 
         return true;
 
     }
 
-    //hope yyou remember
     private ScanCallback leScanCallback = new ScanCallback() {
 
         @Override
@@ -99,8 +94,6 @@ public class UartService extends Service {
                 mConnectionState = STATE_CONNECTING;
                 return true;
             } else {
-                //if (!mGatt.connect()) {
-                //mConnectionState = STATE_DISCONNECTED;
                 return false;
             }
         }
@@ -167,8 +160,6 @@ public class UartService extends Service {
                 Log.i(TAG, "Connected to GATT server.");
                 mGatt.discoverServices();
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
-                //mGatt.close();
-                //mGatt.disconnect();
                 intentAction = ACTION_GATT_DISCONNECTED;
                 mConnectionState = STATE_DISCONNECTED;
                 Log.i(TAG, "Disconnected from GATT server.");
@@ -184,8 +175,6 @@ public class UartService extends Service {
                 Log.w(TAG, "mGatt = " + mGatt);
                 broadcastUpdate(ACTION_GATT_SERVICES_DISCOVERED);
 
-                // List<BluetoothGattService> services = gatt.getServices();
-                // Log.w(TAG, "onServicesDiscovered received: " + services.toString() + "\n");
             } else {
                 Log.w(TAG, "onServicesDiscovered received: " + status);
             }
@@ -208,7 +197,6 @@ public class UartService extends Service {
         Log.d(TAG, "broadcast");
         final Intent intent = new Intent(action);
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
-        //sendBroadcast(intent);
     }
 
     //ACTUALLY RECIEVING DATA
@@ -221,10 +209,8 @@ public class UartService extends Service {
             int format = -1;
             if ((flag & 0x01) != 0) {
                 format = BluetoothGattCharacteristic.FORMAT_UINT16;
-                Log.d(TAG, "Heart rate format UINT16.");
             } else {
                 format = BluetoothGattCharacteristic.FORMAT_UINT8;
-//                Log.d(TAG, "Heart rate format UINT8.");
             }
             final String ECGData = characteristic.getStringValue(0); //receive data in byte
             Log.d(TAG, ECGData);
@@ -247,22 +233,13 @@ public class UartService extends Service {
 
     @Override
     public boolean onUnbind(Intent intent) {
-        // After using a given device, you should make sure that BluetoothGatt.close() is called
-        // such that resources are cleaned up properly.  In this particular example, close() is
-        // invoked when the UI is disconnected from the Service.
+
         close();
         return super.onUnbind(intent);
     }
 
     private final IBinder mBinder = new LocalBinder();
 
-    /**
-     * Enables or disables notification on a give characteristic.
-     * <p>
-     * Enable Notification on TX characteristic
-     *
-     * @return
-     */
     public void setCharacteristicNotification(BluetoothGattCharacteristic characteristic,
                                               boolean enabled) {
         if (btAdapter == null || mGatt == null) {
@@ -271,7 +248,6 @@ public class UartService extends Service {
         }
         mGatt.setCharacteristicNotification(characteristic, enabled);
 
-        // This is specific to Heart Rate Measurement.
         if (UUID_RX_CHAR_UUID.equals(characteristic.getUuid())) {
             BluetoothGattDescriptor descriptor = characteristic.getDescriptor(
                     UUID.fromString(SampleGattAttributes.CCCD));
@@ -282,7 +258,6 @@ public class UartService extends Service {
 
     public List<BluetoothGattService> getSupportedGattServices() {
         if (mGatt == null) return null;
-
         return mGatt.getServices();
     }
 }
